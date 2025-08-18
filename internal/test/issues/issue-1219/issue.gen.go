@@ -30,20 +30,18 @@ type MergeDefaultDefault struct {
 
 // MergeDefaultWithAny defines model for MergeDefaultWithAny.
 type MergeDefaultWithAny struct {
-	Field1               *int                   `json:"field1,omitempty"`
-	Field2               *string                `json:"field2,omitempty"`
-	FieldA               *int                   `json:"fieldA,omitempty"`
-	FieldB               *string                `json:"fieldB,omitempty"`
-	AdditionalProperties map[string]interface{} `json:"-"`
+	Field1 *int    `json:"field1,omitempty"`
+	Field2 *string `json:"field2,omitempty"`
+	FieldA *int    `json:"fieldA,omitempty"`
+	FieldB *string `json:"fieldB,omitempty"`
 }
 
 // MergeDefaultWithString defines model for MergeDefaultWithString.
 type MergeDefaultWithString struct {
-	Field1               *int              `json:"field1,omitempty"`
-	Field2               *string           `json:"field2,omitempty"`
-	FieldA               *int              `json:"fieldA,omitempty"`
-	FieldB               *string           `json:"fieldB,omitempty"`
-	AdditionalProperties map[string]string `json:"-"`
+	Field1 *int    `json:"field1,omitempty"`
+	Field2 *string `json:"field2,omitempty"`
+	FieldA *int    `json:"fieldA,omitempty"`
+	FieldB *string `json:"fieldB,omitempty"`
 }
 
 // MergeDefaultWithout defines model for MergeDefaultWithout.
@@ -74,19 +72,20 @@ type MergeWithAnyWithAny struct {
 
 // MergeWithAnyWithString defines model for MergeWithAnyWithString.
 type MergeWithAnyWithString struct {
-	Field1               *int              `json:"field1,omitempty"`
-	Field2               *string           `json:"field2,omitempty"`
-	FieldA               *int              `json:"fieldA,omitempty"`
-	FieldB               *string           `json:"fieldB,omitempty"`
-	AdditionalProperties map[string]string `json:"-"`
+	Field1               *int                   `json:"field1,omitempty"`
+	Field2               *string                `json:"field2,omitempty"`
+	FieldA               *int                   `json:"fieldA,omitempty"`
+	FieldB               *string                `json:"fieldB,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
 }
 
 // MergeWithAnyWithout defines model for MergeWithAnyWithout.
 type MergeWithAnyWithout struct {
-	Field1 *int    `json:"field1,omitempty"`
-	Field2 *string `json:"field2,omitempty"`
-	FieldA *int    `json:"fieldA,omitempty"`
-	FieldB *string `json:"fieldB,omitempty"`
+	Field1               *int                   `json:"field1,omitempty"`
+	Field2               *string                `json:"field2,omitempty"`
+	FieldA               *int                   `json:"fieldA,omitempty"`
+	FieldB               *string                `json:"fieldB,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
 }
 
 // MergeWithStringDefault defines model for MergeWithStringDefault.
@@ -109,10 +108,11 @@ type MergeWithStringWithAny struct {
 
 // MergeWithStringWithout defines model for MergeWithStringWithout.
 type MergeWithStringWithout struct {
-	Field1 *int    `json:"field1,omitempty"`
-	Field2 *string `json:"field2,omitempty"`
-	FieldA *int    `json:"fieldA,omitempty"`
-	FieldB *string `json:"fieldB,omitempty"`
+	Field1               *int              `json:"field1,omitempty"`
+	Field2               *string           `json:"field2,omitempty"`
+	FieldA               *int              `json:"fieldA,omitempty"`
+	FieldB               *string           `json:"fieldB,omitempty"`
+	AdditionalProperties map[string]string `json:"-"`
 }
 
 // MergeWithoutDefault defines model for MergeWithoutDefault.
@@ -185,232 +185,6 @@ type WithoutAdditional1 struct {
 type WithoutAdditional2 struct {
 	FieldA *int    `json:"fieldA,omitempty"`
 	FieldB *string `json:"fieldB,omitempty"`
-}
-
-// Getter for additional properties for MergeDefaultWithAny. Returns the specified
-// element and whether it was found
-func (a MergeDefaultWithAny) Get(fieldName string) (value interface{}, found bool) {
-	if a.AdditionalProperties != nil {
-		value, found = a.AdditionalProperties[fieldName]
-	}
-	return
-}
-
-// Setter for additional properties for MergeDefaultWithAny
-func (a *MergeDefaultWithAny) Set(fieldName string, value interface{}) {
-	if a.AdditionalProperties == nil {
-		a.AdditionalProperties = make(map[string]interface{})
-	}
-	a.AdditionalProperties[fieldName] = value
-}
-
-// Override default JSON handling for MergeDefaultWithAny to handle AdditionalProperties
-func (a *MergeDefaultWithAny) UnmarshalJSON(b []byte) error {
-	object := make(map[string]json.RawMessage)
-	err := json.Unmarshal(b, &object)
-	if err != nil {
-		return err
-	}
-
-	if raw, found := object["field1"]; found {
-		err = json.Unmarshal(raw, &a.Field1)
-		if err != nil {
-			return fmt.Errorf("error reading 'field1': %w", err)
-		}
-		delete(object, "field1")
-	}
-
-	if raw, found := object["field2"]; found {
-		err = json.Unmarshal(raw, &a.Field2)
-		if err != nil {
-			return fmt.Errorf("error reading 'field2': %w", err)
-		}
-		delete(object, "field2")
-	}
-
-	if raw, found := object["fieldA"]; found {
-		err = json.Unmarshal(raw, &a.FieldA)
-		if err != nil {
-			return fmt.Errorf("error reading 'fieldA': %w", err)
-		}
-		delete(object, "fieldA")
-	}
-
-	if raw, found := object["fieldB"]; found {
-		err = json.Unmarshal(raw, &a.FieldB)
-		if err != nil {
-			return fmt.Errorf("error reading 'fieldB': %w", err)
-		}
-		delete(object, "fieldB")
-	}
-
-	if len(object) != 0 {
-		a.AdditionalProperties = make(map[string]interface{})
-		for fieldName, fieldBuf := range object {
-			var fieldVal interface{}
-			err := json.Unmarshal(fieldBuf, &fieldVal)
-			if err != nil {
-				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
-			}
-			a.AdditionalProperties[fieldName] = fieldVal
-		}
-	}
-	return nil
-}
-
-// Override default JSON handling for MergeDefaultWithAny to handle AdditionalProperties
-func (a MergeDefaultWithAny) MarshalJSON() ([]byte, error) {
-	var err error
-	object := make(map[string]json.RawMessage)
-
-	if a.Field1 != nil {
-		object["field1"], err = json.Marshal(a.Field1)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'field1': %w", err)
-		}
-	}
-
-	if a.Field2 != nil {
-		object["field2"], err = json.Marshal(a.Field2)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'field2': %w", err)
-		}
-	}
-
-	if a.FieldA != nil {
-		object["fieldA"], err = json.Marshal(a.FieldA)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'fieldA': %w", err)
-		}
-	}
-
-	if a.FieldB != nil {
-		object["fieldB"], err = json.Marshal(a.FieldB)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'fieldB': %w", err)
-		}
-	}
-
-	for fieldName, field := range a.AdditionalProperties {
-		object[fieldName], err = json.Marshal(field)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
-		}
-	}
-	return json.Marshal(object)
-}
-
-// Getter for additional properties for MergeDefaultWithString. Returns the specified
-// element and whether it was found
-func (a MergeDefaultWithString) Get(fieldName string) (value string, found bool) {
-	if a.AdditionalProperties != nil {
-		value, found = a.AdditionalProperties[fieldName]
-	}
-	return
-}
-
-// Setter for additional properties for MergeDefaultWithString
-func (a *MergeDefaultWithString) Set(fieldName string, value string) {
-	if a.AdditionalProperties == nil {
-		a.AdditionalProperties = make(map[string]string)
-	}
-	a.AdditionalProperties[fieldName] = value
-}
-
-// Override default JSON handling for MergeDefaultWithString to handle AdditionalProperties
-func (a *MergeDefaultWithString) UnmarshalJSON(b []byte) error {
-	object := make(map[string]json.RawMessage)
-	err := json.Unmarshal(b, &object)
-	if err != nil {
-		return err
-	}
-
-	if raw, found := object["field1"]; found {
-		err = json.Unmarshal(raw, &a.Field1)
-		if err != nil {
-			return fmt.Errorf("error reading 'field1': %w", err)
-		}
-		delete(object, "field1")
-	}
-
-	if raw, found := object["field2"]; found {
-		err = json.Unmarshal(raw, &a.Field2)
-		if err != nil {
-			return fmt.Errorf("error reading 'field2': %w", err)
-		}
-		delete(object, "field2")
-	}
-
-	if raw, found := object["fieldA"]; found {
-		err = json.Unmarshal(raw, &a.FieldA)
-		if err != nil {
-			return fmt.Errorf("error reading 'fieldA': %w", err)
-		}
-		delete(object, "fieldA")
-	}
-
-	if raw, found := object["fieldB"]; found {
-		err = json.Unmarshal(raw, &a.FieldB)
-		if err != nil {
-			return fmt.Errorf("error reading 'fieldB': %w", err)
-		}
-		delete(object, "fieldB")
-	}
-
-	if len(object) != 0 {
-		a.AdditionalProperties = make(map[string]string)
-		for fieldName, fieldBuf := range object {
-			var fieldVal string
-			err := json.Unmarshal(fieldBuf, &fieldVal)
-			if err != nil {
-				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
-			}
-			a.AdditionalProperties[fieldName] = fieldVal
-		}
-	}
-	return nil
-}
-
-// Override default JSON handling for MergeDefaultWithString to handle AdditionalProperties
-func (a MergeDefaultWithString) MarshalJSON() ([]byte, error) {
-	var err error
-	object := make(map[string]json.RawMessage)
-
-	if a.Field1 != nil {
-		object["field1"], err = json.Marshal(a.Field1)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'field1': %w", err)
-		}
-	}
-
-	if a.Field2 != nil {
-		object["field2"], err = json.Marshal(a.Field2)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'field2': %w", err)
-		}
-	}
-
-	if a.FieldA != nil {
-		object["fieldA"], err = json.Marshal(a.FieldA)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'fieldA': %w", err)
-		}
-	}
-
-	if a.FieldB != nil {
-		object["fieldB"], err = json.Marshal(a.FieldB)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'fieldB': %w", err)
-		}
-	}
-
-	for fieldName, field := range a.AdditionalProperties {
-		object[fieldName], err = json.Marshal(field)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
-		}
-	}
-	return json.Marshal(object)
 }
 
 // Getter for additional properties for MergeWithAnyDefault. Returns the specified
@@ -641,7 +415,7 @@ func (a MergeWithAnyWithAny) MarshalJSON() ([]byte, error) {
 
 // Getter for additional properties for MergeWithAnyWithString. Returns the specified
 // element and whether it was found
-func (a MergeWithAnyWithString) Get(fieldName string) (value string, found bool) {
+func (a MergeWithAnyWithString) Get(fieldName string) (value interface{}, found bool) {
 	if a.AdditionalProperties != nil {
 		value, found = a.AdditionalProperties[fieldName]
 	}
@@ -649,9 +423,9 @@ func (a MergeWithAnyWithString) Get(fieldName string) (value string, found bool)
 }
 
 // Setter for additional properties for MergeWithAnyWithString
-func (a *MergeWithAnyWithString) Set(fieldName string, value string) {
+func (a *MergeWithAnyWithString) Set(fieldName string, value interface{}) {
 	if a.AdditionalProperties == nil {
-		a.AdditionalProperties = make(map[string]string)
+		a.AdditionalProperties = make(map[string]interface{})
 	}
 	a.AdditionalProperties[fieldName] = value
 }
@@ -697,9 +471,9 @@ func (a *MergeWithAnyWithString) UnmarshalJSON(b []byte) error {
 	}
 
 	if len(object) != 0 {
-		a.AdditionalProperties = make(map[string]string)
+		a.AdditionalProperties = make(map[string]interface{})
 		for fieldName, fieldBuf := range object {
-			var fieldVal string
+			var fieldVal interface{}
 			err := json.Unmarshal(fieldBuf, &fieldVal)
 			if err != nil {
 				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
@@ -712,6 +486,119 @@ func (a *MergeWithAnyWithString) UnmarshalJSON(b []byte) error {
 
 // Override default JSON handling for MergeWithAnyWithString to handle AdditionalProperties
 func (a MergeWithAnyWithString) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Field1 != nil {
+		object["field1"], err = json.Marshal(a.Field1)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'field1': %w", err)
+		}
+	}
+
+	if a.Field2 != nil {
+		object["field2"], err = json.Marshal(a.Field2)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'field2': %w", err)
+		}
+	}
+
+	if a.FieldA != nil {
+		object["fieldA"], err = json.Marshal(a.FieldA)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'fieldA': %w", err)
+		}
+	}
+
+	if a.FieldB != nil {
+		object["fieldB"], err = json.Marshal(a.FieldB)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'fieldB': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for MergeWithAnyWithout. Returns the specified
+// element and whether it was found
+func (a MergeWithAnyWithout) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for MergeWithAnyWithout
+func (a *MergeWithAnyWithout) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for MergeWithAnyWithout to handle AdditionalProperties
+func (a *MergeWithAnyWithout) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["field1"]; found {
+		err = json.Unmarshal(raw, &a.Field1)
+		if err != nil {
+			return fmt.Errorf("error reading 'field1': %w", err)
+		}
+		delete(object, "field1")
+	}
+
+	if raw, found := object["field2"]; found {
+		err = json.Unmarshal(raw, &a.Field2)
+		if err != nil {
+			return fmt.Errorf("error reading 'field2': %w", err)
+		}
+		delete(object, "field2")
+	}
+
+	if raw, found := object["fieldA"]; found {
+		err = json.Unmarshal(raw, &a.FieldA)
+		if err != nil {
+			return fmt.Errorf("error reading 'fieldA': %w", err)
+		}
+		delete(object, "fieldA")
+	}
+
+	if raw, found := object["fieldB"]; found {
+		err = json.Unmarshal(raw, &a.FieldB)
+		if err != nil {
+			return fmt.Errorf("error reading 'fieldB': %w", err)
+		}
+		delete(object, "fieldB")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for MergeWithAnyWithout to handle AdditionalProperties
+func (a MergeWithAnyWithout) MarshalJSON() ([]byte, error) {
 	var err error
 	object := make(map[string]json.RawMessage)
 
@@ -938,6 +825,119 @@ func (a *MergeWithStringWithAny) UnmarshalJSON(b []byte) error {
 
 // Override default JSON handling for MergeWithStringWithAny to handle AdditionalProperties
 func (a MergeWithStringWithAny) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Field1 != nil {
+		object["field1"], err = json.Marshal(a.Field1)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'field1': %w", err)
+		}
+	}
+
+	if a.Field2 != nil {
+		object["field2"], err = json.Marshal(a.Field2)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'field2': %w", err)
+		}
+	}
+
+	if a.FieldA != nil {
+		object["fieldA"], err = json.Marshal(a.FieldA)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'fieldA': %w", err)
+		}
+	}
+
+	if a.FieldB != nil {
+		object["fieldB"], err = json.Marshal(a.FieldB)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'fieldB': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for MergeWithStringWithout. Returns the specified
+// element and whether it was found
+func (a MergeWithStringWithout) Get(fieldName string) (value string, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for MergeWithStringWithout
+func (a *MergeWithStringWithout) Set(fieldName string, value string) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]string)
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for MergeWithStringWithout to handle AdditionalProperties
+func (a *MergeWithStringWithout) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["field1"]; found {
+		err = json.Unmarshal(raw, &a.Field1)
+		if err != nil {
+			return fmt.Errorf("error reading 'field1': %w", err)
+		}
+		delete(object, "field1")
+	}
+
+	if raw, found := object["field2"]; found {
+		err = json.Unmarshal(raw, &a.Field2)
+		if err != nil {
+			return fmt.Errorf("error reading 'field2': %w", err)
+		}
+		delete(object, "field2")
+	}
+
+	if raw, found := object["fieldA"]; found {
+		err = json.Unmarshal(raw, &a.FieldA)
+		if err != nil {
+			return fmt.Errorf("error reading 'fieldA': %w", err)
+		}
+		delete(object, "fieldA")
+	}
+
+	if raw, found := object["fieldB"]; found {
+		err = json.Unmarshal(raw, &a.FieldB)
+		if err != nil {
+			return fmt.Errorf("error reading 'fieldB': %w", err)
+		}
+		delete(object, "fieldB")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]string)
+		for fieldName, fieldBuf := range object {
+			var fieldVal string
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for MergeWithStringWithout to handle AdditionalProperties
+func (a MergeWithStringWithout) MarshalJSON() ([]byte, error) {
 	var err error
 	object := make(map[string]json.RawMessage)
 

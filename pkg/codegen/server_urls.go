@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"text/template"
 
-	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
 )
 
 const serverURLPrefix = "ServerUrl"
@@ -17,11 +17,11 @@ type ServerObjectDefinition struct {
 	GoName string
 
 	// OAPISchema is the underlying OpenAPI representation of the Server
-	OAPISchema *openapi3.Server
+	OAPISchema *openapi.Server
 }
 
-func GenerateServerURLs(t *template.Template, spec *openapi3.T) (string, error) {
-	names := make(map[string]*openapi3.Server)
+func GenerateServerURLs(t *template.Template, spec *openapi.T) (string, error) {
+	names := make(map[string]*openapi.Server)
 
 	for _, server := range spec.Servers {
 		suffix := server.Description

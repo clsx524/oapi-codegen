@@ -13,11 +13,10 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path"
 	"strings"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/labstack/echo/v4"
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
 	"github.com/oapi-codegen/runtime"
 )
 
@@ -27,22 +26,16 @@ const (
 	TestFieldA1Foo TestFieldA1 = "foo"
 )
 
-// Defines values for TestFieldB.
-const (
-	TestFieldBBar TestFieldB = "bar"
-	TestFieldBFoo TestFieldB = "foo"
-)
-
 // Defines values for TestFieldC1.
 const (
-	Bar TestFieldC1 = "bar"
-	Foo TestFieldC1 = "foo"
+	TestFieldC1Bar TestFieldC1 = "bar"
+	TestFieldC1Foo TestFieldC1 = "foo"
 )
 
 // Test defines model for test.
 type Test struct {
 	FieldA *Test_FieldA `json:"fieldA,omitempty"`
-	FieldB *TestFieldB  `json:"fieldB,omitempty"`
+	FieldB *string      `json:"fieldB,omitempty"`
 	FieldC *Test_FieldC `json:"fieldC,omitempty"`
 }
 
@@ -56,9 +49,6 @@ type TestFieldA1 string
 type Test_FieldA struct {
 	union json.RawMessage
 }
-
-// TestFieldB defines model for Test.FieldB.
-type TestFieldB string
 
 // TestFieldC0 defines model for .
 type TestFieldC0 = string
@@ -471,10 +461,10 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/6yRsU4zMRCE32X+v7RyJ+jcARUVDV2UwlzWiZFvd2Vviuh0747sI4pEC9vMyPZ+lmYW",
-	"TDKrMLFV+AV1OtMcujWq1lSLKBVL1E9jonx8ai7w9S3C7xfYVQke1UriE1a3gPgyw+8RReDwEQoO7uez",
-	"w+o22nOn5fw3tJdGE6Zf0to4JI4Cz5ecHUSJgyZ4PO7G3QgHDXbuoQy3rE7UpQUWLAm/HuHx3i4dClUV",
-	"rluMD+PYZBI24r4TVHOa+tbwWYXvbTT3v1CEx7/hXtfw3dX2+XqbrwAAAP//gr+fh9IBAAA=",
+	"H4sIAAAAAAAC/6yRsU7EMBBE/2WgtC4RdO6AioqG7nSFcTZ3RsnuyjbFKcq/I29AkWi5NDOKvc+rmQVR",
+	"ZhUmrgV+QYkXmoPZSqU21SxKuSayv2OiaXhqLvD1bYQ/LqhXJXiUmhOfsboFxF8z/BGjCBw+QsbJ/b12",
+	"Wt1GezbaNN2G9tJowvRPWvscRImDJng8HvpDDwcN9WJBdL/5nMmkhRRqEn4d4PHeDh0yFRUuW3QPfd8k",
+	"CldimwmqU4o21X0W4b2B5u4zjfC46/aKup9+tsdtxYFKzEkbAx6wxdfvAAAA//+k9Peq1wEAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
@@ -522,27 +512,20 @@ func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
 // The logic of resolving external references is tightly connected to "import-mapping" feature.
 // Externally referenced files must be embedded in the corresponding golang packages.
 // Urls can be supported but this task was out of the scope.
-func GetSwagger() (swagger *openapi3.T, err error) {
+func GetSwagger() (swagger *openapi.T, err error) {
 	resolvePath := PathToRawSpec("")
+	_ = resolvePath // TODO: Use resolvePath when ReadFromURIFunc is implemented
 
-	loader := openapi3.NewLoader()
+	loader := openapi.NewLoader()
 	loader.IsExternalRefsAllowed = true
-	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
-		pathToFile := url.String()
-		pathToFile = path.Clean(pathToFile)
-		getSpec, ok := resolvePath[pathToFile]
-		if !ok {
-			err1 := fmt.Errorf("path not found: %s", pathToFile)
-			return nil, err1
-		}
-		return getSpec()
-	}
+	// TODO: Add ReadFromURIFunc support to our abstraction layer
 	var specData []byte
 	specData, err = rawSpec()
 	if err != nil {
 		return
 	}
-	swagger, err = loader.LoadFromData(specData)
+	// Use LoadFromDataWithBasePath with current directory as base path
+	swagger, err = loader.LoadFromDataWithBasePath(specData, ".")
 	if err != nil {
 		return
 	}

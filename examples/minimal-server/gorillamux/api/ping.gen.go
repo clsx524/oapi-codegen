@@ -18,7 +18,7 @@ type Pong struct {
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
-	// (GET /ping)
+	// (get /ping)
 	GetPing(w http.ResponseWriter, r *http.Request)
 }
 
@@ -158,7 +158,7 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
-	r.HandleFunc(options.BaseURL+"/ping", wrapper.GetPing).Methods("GET")
+	r.HandleFunc(options.BaseURL+"/ping", wrapper.GetPing).Methods("get")
 
 	return r
 }

@@ -4,7 +4,7 @@ import (
 	_ "embed"
 	"testing"
 
-	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
 	"github.com/oapi-codegen/oapi-codegen/v2/pkg/codegen"
 	"github.com/stretchr/testify/require"
 )
@@ -13,7 +13,7 @@ import (
 var spec []byte
 
 func TestIssue(t *testing.T) {
-	swagger, err := openapi3.NewLoader().LoadFromData(spec)
+	swagger, err := openapi.NewLoader().LoadFromData(spec)
 	require.NoError(t, err)
 
 	opts := codegen.Configuration{

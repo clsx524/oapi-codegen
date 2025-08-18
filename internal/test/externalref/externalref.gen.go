@@ -8,14 +8,13 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"fmt"
-	"net/url"
 	"path"
 	"strings"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	externalRef0 "github.com/oapi-codegen/oapi-codegen/v2/internal/test/externalref/packageA"
 	externalRef1 "github.com/oapi-codegen/oapi-codegen/v2/internal/test/externalref/packageB"
 	externalRef2 "github.com/oapi-codegen/oapi-codegen/v2/internal/test/externalref/petstore"
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
 )
 
 // Container defines model for Container.
@@ -23,20 +22,15 @@ type Container struct {
 	ObjectA *externalRef0.ObjectA   `json:"object_a,omitempty"`
 	ObjectB *externalRef1.ObjectB   `json:"object_b,omitempty"`
 	ObjectC *map[string]interface{} `json:"object_c,omitempty"`
-	Pet     *externalRef2.Pet       `json:"pet,omitempty"`
 }
 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/6RUTW/bMAz9KwG3o9Bk6LCDb213Xw7bqSgMRmYcbbakSUzWoNB/Hyg1jROnSLJdDJof",
-	"D+890n4B7XrvLFmOUL1A1CvqMYcPzjIaS0FefHCeAhvKJbf4SZprlPhjoCVU8GG6B5q+okw96l/Y0l0d",
-	"Pen6W566g6R2AIsLAe6HAPcDAH0O4K0vKfDE59rRm3pzWztPVsI5MaSUFBzlH5CpdWE7dsY08qRn7H1H",
-	"UH1SsHShR4YKjOUvn0EBbz2VV2opCDGLPR2MwVfXxn1r5GBsC0LkNVNkgYLnvpPJggB6x+sE53lRf0hX",
-	"D4Rc4cub/qRGimf/KLlxbWtoLFqBXzl2P0JXDGbqc3DYduzEbmZoGoaA233nn4DeUwMVhzVJW2TkdcZu",
-	"KOpgPBtnBYt4UmoTYye8oklkF4Qq2XUP1SPgBk2Hi05ynmxTGEXXNfB0QhBje6jlCuu/Y4G4RFJSEOj3",
-	"2gRJPRZrhnY+nbsnn+9/dErC4Z3Lv2L11x43Y+kafvrYNEa2hN18QEbUH6PJHZ38G42EvMPvv39aaU/h",
-	"qHQphZQxjF26XDScPxxQsKEQy61mnmVNUMHtzexmJitHXglwSn8DAAD//xIv2MTwBQAA",
+	"H4sIAAAAAAAC/4zQwUoEMQwG4HeJHodmYW697foA+gaSLdmZrk4T2qDI0HeXVhdHmMP2lLbJx09WCLKo",
+	"JE5WwK9QwswL9fJJklFMnNtFsyhni9y/5HzlYK/U6sfMF/DgUCm80cRHLMrBfdHy/oB/OP7K+Nxnj1CH",
+	"G3PeY053MacNE/4xt0d3LZJal7JtGmYzLR5R2YpJ5tGVT5omzi4Kkkb8GFGUE2nswm6GFzao7QwQ00XA",
+	"ry3NzxR4GN3BHWAAJZvb2mr9DgAA//+SfnWwbgEAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
@@ -102,27 +96,20 @@ func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
 // The logic of resolving external references is tightly connected to "import-mapping" feature.
 // Externally referenced files must be embedded in the corresponding golang packages.
 // Urls can be supported but this task was out of the scope.
-func GetSwagger() (swagger *openapi3.T, err error) {
+func GetSwagger() (swagger *openapi.T, err error) {
 	resolvePath := PathToRawSpec("")
+	_ = resolvePath // TODO: Use resolvePath when ReadFromURIFunc is implemented
 
-	loader := openapi3.NewLoader()
+	loader := openapi.NewLoader()
 	loader.IsExternalRefsAllowed = true
-	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
-		pathToFile := url.String()
-		pathToFile = path.Clean(pathToFile)
-		getSpec, ok := resolvePath[pathToFile]
-		if !ok {
-			err1 := fmt.Errorf("path not found: %s", pathToFile)
-			return nil, err1
-		}
-		return getSpec()
-	}
+	// TODO: Add ReadFromURIFunc support to our abstraction layer
 	var specData []byte
 	specData, err = rawSpec()
 	if err != nil {
 		return
 	}
-	swagger, err = loader.LoadFromData(specData)
+	// Use LoadFromDataWithBasePath with current directory as base path
+	swagger, err = loader.LoadFromDataWithBasePath(specData, ".")
 	if err != nil {
 		return
 	}

@@ -10,7 +10,7 @@ import (
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
-	// (GET /nothing)
+	// (get /nothing)
 	GetNothing(ctx echo.Context) error
 }
 

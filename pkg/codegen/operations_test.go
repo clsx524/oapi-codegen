@@ -17,7 +17,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
 )
 
 func TestIsJson(t *testing.T) {
@@ -66,13 +66,15 @@ func TestIsJson(t *testing.T) {
 	}
 	for _, test := range suite {
 		t.Run(test.name, func(t *testing.T) {
-			pd := ParameterDefinition{
-				Spec: &openapi3.Parameter{
-					Content: make(map[string]*openapi3.MediaType),
-				},
-			}
+			content := make(map[string]*openapi.MediaType)
 			for _, mediaType := range test.mediaTypes {
-				pd.Spec.Content[mediaType] = nil
+				content[mediaType] = nil
+			}
+			
+			pd := ParameterDefinition{
+				Spec: &openapi.Parameter{
+					Content: content,
+				},
 			}
 
 			got := pd.IsJson()

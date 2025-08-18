@@ -18,7 +18,7 @@ type Pong struct {
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
-	// (GET /ping)
+	// (get /ping)
 	GetPing(w http.ResponseWriter, r *http.Request)
 }
 
@@ -26,7 +26,7 @@ type ServerInterface interface {
 
 type Unimplemented struct{}
 
-// (GET /ping)
+// (get /ping)
 func (_ Unimplemented) GetPing(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }

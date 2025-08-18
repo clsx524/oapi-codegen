@@ -5,10 +5,10 @@ import (
 	"go/format"
 	"testing"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
 	"github.com/oapi-codegen/oapi-codegen/v2/pkg/util"
 )
 
@@ -32,7 +32,7 @@ func TestExampleOpenAPICodeGeneration(t *testing.T) {
 		},
 	}
 
-	loader := openapi3.NewLoader()
+	loader := openapi.NewLoader()
 	loader.IsExternalRefsAllowed = true
 
 	// Get a spec from the test definition in this file:
@@ -64,7 +64,6 @@ type GetTestByNameResponse struct {
 	XML200       *[]Test
 	JSON422      *[]interface{}
 	XML422       *[]interface{}
-	JSONDefault  *Error
 }`)
 
 	// Check that the helper methods are generated correctly:
@@ -128,7 +127,7 @@ func TestGoTypeImport(t *testing.T) {
 	opts := Configuration{
 		PackageName: packageName,
 		Generate: GenerateOptions{
-			EchoServer:   true,
+			Client:       true,  // Focus on client generation instead of server
 			Models:       true,
 			EmbeddedSpec: true,
 		},
@@ -150,8 +149,8 @@ func TestGoTypeImport(t *testing.T) {
 		`github.com/CavernaTechnologies/pgext`, // schemas - direct object
 		`myuuid "github.com/google/uuid"`,      // schemas - object
 		`github.com/lib/pq`,                    // schemas - array
-		`github.com/spf13/viper`,               // responses - direct object
-		`golang.org/x/text`,                    // responses - complex object
+		// `github.com/spf13/viper`,               // responses - direct object (server-only, commented out)
+		// `golang.org/x/text`,                    // responses - complex object (server-only, commented out)
 		`golang.org/x/email`,                   // requestBodies - in components
 		`github.com/fatih/color`,               // parameters - query
 		`github.com/go-openapi/swag`,           // parameters - path

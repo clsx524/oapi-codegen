@@ -12,7 +12,7 @@ type ID = googleuuid.UUID
 
 // TypeWithAllOf defines model for TypeWithAllOf.
 type TypeWithAllOf struct {
-	Id googleuuid.UUID `json:"id,omitempty"`
+	Id *googleuuid.UUID `json:"id,omitempty"`
 }
 
 // TypeWithOptionalField defines model for TypeWithOptionalField.

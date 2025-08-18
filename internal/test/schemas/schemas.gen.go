@@ -14,13 +14,12 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path"
 	"strings"
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/labstack/echo/v4"
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
 	"github.com/oapi-codegen/runtime"
 )
 
@@ -95,9 +94,6 @@ type OuterTypeWithAnonymousInner struct {
 type InnerRenamedAnonymousObject struct {
 	Id int `json:"id"`
 }
-
-// StringInPath defines model for StringInPath.
-type StringInPath = string
 
 // Issue9JSONBody defines parameters for Issue9.
 type Issue9JSONBody = interface{}
@@ -201,7 +197,7 @@ type ClientInterface interface {
 	Issue185(ctx context.Context, body Issue185JSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// Issue209 request
-	Issue209(ctx context.Context, str StringInPath, reqEditors ...RequestEditorFn) (*http.Response, error)
+	Issue209(ctx context.Context, str string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// Issue30 request
 	Issue30(ctx context.Context, pFallthrough string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -281,7 +277,7 @@ func (c *Client) Issue185(ctx context.Context, body Issue185JSONRequestBody, req
 	return c.Client.Do(req)
 }
 
-func (c *Client) Issue209(ctx context.Context, str StringInPath, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) Issue209(ctx context.Context, str string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewIssue209Request(c.Server, str)
 	if err != nil {
 		return nil, err
@@ -487,7 +483,7 @@ func NewIssue185RequestWithBody(server string, contentType string, body io.Reade
 }
 
 // NewIssue209Request generates requests for Issue209
-func NewIssue209Request(server string, str StringInPath) (*http.Request, error) {
+func NewIssue209Request(server string, str string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -758,7 +754,7 @@ type ClientWithResponsesInterface interface {
 	Issue185WithResponse(ctx context.Context, body Issue185JSONRequestBody, reqEditors ...RequestEditorFn) (*Issue185Response, error)
 
 	// Issue209WithResponse request
-	Issue209WithResponse(ctx context.Context, str StringInPath, reqEditors ...RequestEditorFn) (*Issue209Response, error)
+	Issue209WithResponse(ctx context.Context, str string, reqEditors ...RequestEditorFn) (*Issue209Response, error)
 
 	// Issue30WithResponse request
 	Issue30WithResponse(ctx context.Context, pFallthrough string, reqEditors ...RequestEditorFn) (*Issue30Response, error)
@@ -837,7 +833,6 @@ type Issue127Response struct {
 	JSON200      *GenericObject
 	XML200       *GenericObject
 	YAML200      *GenericObject
-	JSONDefault  *GenericObject
 }
 
 // Status returns HTTPResponse.Status
@@ -1050,7 +1045,7 @@ func (c *ClientWithResponses) Issue185WithResponse(ctx context.Context, body Iss
 }
 
 // Issue209WithResponse request returning *Issue209Response
-func (c *ClientWithResponses) Issue209WithResponse(ctx context.Context, str StringInPath, reqEditors ...RequestEditorFn) (*Issue209Response, error) {
+func (c *ClientWithResponses) Issue209WithResponse(ctx context.Context, str string, reqEditors ...RequestEditorFn) (*Issue209Response, error) {
 	rsp, err := c.Issue209(ctx, str, reqEditors...)
 	if err != nil {
 		return nil, err
@@ -1199,13 +1194,6 @@ func ParseIssue127Response(rsp *http.Response) (*Issue127Response, error) {
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest GenericObject
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSONDefault = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "xml") && rsp.StatusCode == 200:
 		var dest GenericObject
 		if err := xml.Unmarshal(bodyBytes, &dest); err != nil {
@@ -1221,9 +1209,6 @@ func ParseIssue127Response(rsp *http.Response) (*Issue127Response, error) {
 		response.YAML200 = &dest
 
 	case rsp.StatusCode == 200:
-	// Content-type (text/markdown) unsupported
-
-	case true:
 		// Content-type (text/markdown) unsupported
 
 	}
@@ -1379,7 +1364,7 @@ type ServerInterface interface {
 	Issue185(ctx echo.Context) error
 
 	// (GET /issues/209/${str})
-	Issue209(ctx echo.Context, str StringInPath) error
+	Issue209(ctx echo.Context, str string) error
 
 	// (GET /issues/30/{fallthrough})
 	Issue30(ctx echo.Context, pFallthrough string) error
@@ -1450,7 +1435,7 @@ func (w *ServerInterfaceWrapper) Issue185(ctx echo.Context) error {
 func (w *ServerInterfaceWrapper) Issue209(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "str" -------------
-	var str StringInPath
+	var str string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "str", ctx.Param("str"), &str, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -1586,32 +1571,32 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/7RYXW/buBL9Kyxvgftw/Z0GbfyW2+0WLrBJ0GTRhzoPtDi22EhDlaTsCIb++2JI2bIj",
-	"yW02bV5iiZzhmTPDM6S2PNJpphHQWT7d8kwYkYID459unVG4muGNcDE9S7CRUZlTGvmUXzLrx1kmXMz2",
-	"lrzHFQ3TW97jKFLgU24dDRj4nisDkk+dyaHHbRRDKsi1K7JqmsIVL8tyN+iBnN86YZz9olx8lacLME00",
-	"d7GyLJgwWpNZb8I2ysVMMAxmvd1CevENIsfLHr/E4q7IYMyn2/pp0hJuNcIMZAYsMcYEFowcDuY4x4Ag",
-	"1nki2QKYQKbQgVmKCLblHGmt97l1Og203nkgW77UJhWOT3nkB2uIFRc9/tjXIlP9SEtYAfbh0RnRd2Jl",
-	"g7nmU74QhhNnfxC2SDiQN0ZnYFzhsxp+K/AWCBsabEb4twXmKAjUm1cNHGWP68S7HQfT3Uq7ZHZNn7RP",
-	"P1575lhuQTKnmdQBhUDJXCzcCSRnP4OECKzn9A0Iuw/3KnDBFFoHQr468P3mV8N+Ho7ycLd83SdtD4/f",
-	"t9TyB8zTGV4vvs3w0hjhk68cpLZZBWuR0D/APCX/S2UsQbYQaZQHzvc7smW56oXwS5U9/hEQjIquw4R6",
-	"V9cWV3mSiEUCN0dYjpFpT26A10x8NXiJcufL1/T+d0ct1lxuuwef5/RJhva/2/21pes6d2BIB0jYLlFj",
-	"kerczhCDwB3TojpeH4ZEgrMC08CmZHN9KseV7tPLfiXSfuXPQE9yD+d6DzfM2v6ABz+rV8FtRl36GsuN",
-	"csUtqXWIQkQRWNt3+gGQnhcgDJg/d9L46ctdP+gkCzOZnzmYI6/6BC0RjOp9FzuXhVaicKlbWgZYxyJh",
-	"wbKlNmwtjNK5Zcra3L/KUTK9BsOcSmHAbhIQFpiQkgnmdrZkOkdqBIt8xZbqEWSA5ZSj0gmr3IJZe2hr",
-	"MDasPh6MBqNQ0oAiU3zKzwajwZj3fOv0tAwBbW6gD2swhYsVrvrK9g0swQBGoZpX4Dq6IaDMtELH4FFZ",
-	"Z5nVXphY3fJZJJB6VWSANIkp9Bo2R5tB5JUMtaMJmckRpI+Lik/QMjPJp/yDB/hhj29mP9foqDBsptGG",
-	"JE9GI/oXaXSAHrTIskRF3tvwm1fD7cGZ4LjQRd2n+WsDSz7l/xnWoQyr48Jw38/L3s5m8pM2E7KJWnr0",
-	"KdtGT2+RyvDX48NQW8Px6Hzcmbu/8sSpLAGWglTCny8sI9KEQvbp9vqqJQ0z8uu9vpDz5m49nL9GObA6",
-	"BZ/qwXr8vx87eBr55G134OIBGJUTy9HmWaYN1aSH/ugqHqTG/zqWGYA0c6ye5UcHncxM3r6UmFMlcNz3",
-	"npL2mCYvcUXBD1NhHqTe4IsdFeIlaMiNhKXIE/cbyftFET+tvHfn3XJZZMBWZO8jYJsYkO2OGsNdd2O1",
-	"IDFhgO3OB91l9+68Og2Adf/XsvhlpLWco0K0BzVO8A4JmIwuhq+31pmyk4f3MUQPlqllfZ0LoUqIElFT",
-	"kBTtAU9GF7yJoXd0rfzaHlk9ZXh07SzvD0I4Gw23S5EkLjY6X8VlM4LPYKnVSvYAxUYbeXgjywz4/kxt",
-	"jpo9EejvipVwVJS0xHU2+pmwWq69B2Cfdf09Cvptd+HSgb9KTlW5wu4KmVRxoyKgdLoYGB31/bhCupwG",
-	"hZ7jJlZRXL23SgLTSxr2h/q2yv4IznNiCddvFNXGXaaxo9+Mh9uxz0F3Rd/sUnTwUUDhKnwW2H8UaEn5",
-	"m3AQ+1GCw/onc3sqyOaHjbK8P7mLL7o3b6IAXdi51jdEpjDSxkDkkoJ+J7kE6c+6lSYFGhZaFnTYm2Md",
-	"b6emXXTQ8j0HUxwUvtbPK/h/rZNVUzpk4rpSbh8ZP62KFyd2V/01hS0VJLWYrMAxUWkhHadTQNdJ2O/d",
-	"Ji1ffFoY8d/q8qhKuGzE5V+vhSlobySwhoRkQOoop9A8Ll7tvt3tzaf++N729Z7y6AW4Ko3cJNVFbDoc",
-	"VhcdujoNJECWimwgFCn8PwEAAP//WUiKvIcUAAA=",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
@@ -1659,27 +1644,20 @@ func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
 // The logic of resolving external references is tightly connected to "import-mapping" feature.
 // Externally referenced files must be embedded in the corresponding golang packages.
 // Urls can be supported but this task was out of the scope.
-func GetSwagger() (swagger *openapi3.T, err error) {
+func GetSwagger() (swagger *openapi.T, err error) {
 	resolvePath := PathToRawSpec("")
+	_ = resolvePath // TODO: Use resolvePath when ReadFromURIFunc is implemented
 
-	loader := openapi3.NewLoader()
+	loader := openapi.NewLoader()
 	loader.IsExternalRefsAllowed = true
-	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
-		pathToFile := url.String()
-		pathToFile = path.Clean(pathToFile)
-		getSpec, ok := resolvePath[pathToFile]
-		if !ok {
-			err1 := fmt.Errorf("path not found: %s", pathToFile)
-			return nil, err1
-		}
-		return getSpec()
-	}
+	// TODO: Add ReadFromURIFunc support to our abstraction layer
 	var specData []byte
 	specData, err = rawSpec()
 	if err != nil {
 		return
 	}
-	swagger, err = loader.LoadFromData(specData)
+	// Use LoadFromDataWithBasePath with current directory as base path
+	swagger, err = loader.LoadFromDataWithBasePath(specData, ".")
 	if err != nil {
 		return
 	}

@@ -25,7 +25,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -357,7 +358,7 @@ func SortedMapKeys[T any](m map[string]T) []string {
 // order, since Golang scrambles dictionary keys. This isn't a generic key sort, because
 // we support an extension to grant specific orders to schemas to help control output
 // ordering.
-func SortedSchemaKeys(dict map[string]*openapi3.SchemaRef) []string {
+func SortedSchemaKeys(dict map[string]*openapi.SchemaRef) []string {
 	keys := make([]string, len(dict))
 	orders := make(map[string]int64, len(dict))
 	i := 0
@@ -380,14 +381,47 @@ func SortedSchemaKeys(dict map[string]*openapi3.SchemaRef) []string {
 	return keys
 }
 
-func schemaXOrder(v *openapi3.SchemaRef) (int64, bool) {
+// extractXOrderFromExtensions extracts the x-order value from extensions map
+// In libopenapi, extensions are stored as *yaml.Node, so we need to decode them
+// Returns (value, found) where found indicates if x-order extension was present
+func extractXOrderFromExtensions(extensions map[string]interface{}) (int64, bool) {
+	if extensions == nil {
+		return 0, false
+	}
+
+	// Check for x-order extension
+	if node, ok := extensions[extOrder]; ok {
+		// In libopenapi, extensions are *yaml.Node
+		if yamlNode, ok := node.(*yaml.Node); ok {
+			var order int64
+			if err := yamlNode.Decode(&order); err == nil {
+				return order, true
+			}
+			// Try as float64 and convert
+			var orderFloat float64
+			if err := yamlNode.Decode(&orderFloat); err == nil {
+				return int64(orderFloat), true
+			}
+		}
+		// Fallback: try direct conversion for backward compatibility
+		if order, ok := node.(float64); ok {
+			return int64(order), true
+		}
+		if order, ok := node.(int64); ok {
+			return order, true
+		}
+	}
+	return 0, false
+}
+
+func schemaXOrder(v *openapi.SchemaRef) (int64, bool) {
 	if v == nil {
 		return 0, false
 	}
 
-	// YAML parsing picks up the x-order as a float64
-	if order, ok := v.Extensions[extOrder].(float64); ok {
-		return int64(order), true
+	// Try to get x-order from schema ref extensions
+	if order, found := extractXOrderFromExtensions(v.Extensions); found {
+		return order, true
 	}
 
 	if v.Value == nil {
@@ -395,10 +429,8 @@ func schemaXOrder(v *openapi3.SchemaRef) (int64, bool) {
 	}
 
 	// if v.Value is set, then this is actually a `$ref`, and we should check if there's an x-order set on that
-
-	// YAML parsing picks up the x-order as a float64
-	if order, ok := v.Value.Extensions[extOrder].(float64); ok {
-		return int64(order), true
+	if order, found := extractXOrderFromExtensions(v.Value.Extensions); found {
+		return order, true
 	}
 
 	return 0, false
@@ -844,8 +876,8 @@ func SchemaNameToTypeName(name string) string {
 // differently, in that if you want additionalProperties code to be generated,
 // you must specify an additionalProperties type
 // If additionalProperties it true/false, this field will be non-nil.
-func SchemaHasAdditionalProperties(schema *openapi3.Schema) bool {
-	if schema.AdditionalProperties.Has != nil && *schema.AdditionalProperties.Has {
+func SchemaHasAdditionalProperties(schema *openapi.Schema) bool {
+	if schema.AdditionalProperties.Has {
 		return true
 	}
 
@@ -932,7 +964,7 @@ func EscapePathElements(path string) string {
 // and the definition of the schema. If the schema overrides the name via
 // x-go-name, the new name is returned, otherwise, the original name is
 // returned.
-func renameSchema(schemaName string, schemaRef *openapi3.SchemaRef) (string, error) {
+func renameSchema(schemaName string, schemaRef *openapi.SchemaRef) (string, error) {
 	// References will not change type names.
 	if schemaRef.Ref != "" {
 		return SchemaNameToTypeName(schemaName), nil
@@ -951,7 +983,7 @@ func renameSchema(schemaName string, schemaRef *openapi3.SchemaRef) (string, err
 
 // renameParameter generates the name for a parameter, taking x-go-name into
 // account
-func renameParameter(parameterName string, parameterRef *openapi3.ParameterRef) (string, error) {
+func renameParameter(parameterName string, parameterRef *openapi.ParameterRef) (string, error) {
 	if parameterRef.Ref != "" {
 		return SchemaNameToTypeName(parameterName), nil
 	}
@@ -969,7 +1001,7 @@ func renameParameter(parameterName string, parameterRef *openapi3.ParameterRef) 
 
 // renameResponse generates the name for a parameter, taking x-go-name into
 // account
-func renameResponse(responseName string, responseRef *openapi3.ResponseRef) (string, error) {
+func renameResponse(responseName string, responseRef *openapi.ResponseRef) (string, error) {
 	if responseRef.Ref != "" {
 		return SchemaNameToTypeName(responseName), nil
 	}
@@ -987,7 +1019,7 @@ func renameResponse(responseName string, responseRef *openapi3.ResponseRef) (str
 
 // renameRequestBody generates the name for a parameter, taking x-go-name into
 // account
-func renameRequestBody(requestBodyName string, requestBodyRef *openapi3.RequestBodyRef) (string, error) {
+func renameRequestBody(requestBodyName string, requestBodyRef *openapi.RequestBodyRef) (string, error) {
 	if requestBodyRef.Ref != "" {
 		return SchemaNameToTypeName(requestBodyName), nil
 	}
@@ -1006,7 +1038,7 @@ func renameRequestBody(requestBodyName string, requestBodyRef *openapi3.RequestB
 // findSchemaByRefPath turns a $ref path into a schema. This will return ""
 // if the schema wasn't found, and it'll only work successfully for schemas
 // defined within the spec that we parsed.
-func findSchemaNameByRefPath(refPath string, spec *openapi3.T) (string, error) {
+func findSchemaNameByRefPath(refPath string, spec *openapi.T) (string, error) {
 	if spec.Components == nil {
 		return "", nil
 	}
@@ -1046,16 +1078,17 @@ func findSchemaNameByRefPath(refPath string, spec *openapi3.T) (string, error) {
 	return "", nil
 }
 
-func ParseGoImportExtension(v *openapi3.SchemaRef) (*goImport, error) {
+func ParseGoImportExtension(v *openapi.SchemaRef) (*goImport, error) {
 	if v.Value.Extensions[extPropGoImport] == nil || v.Value.Extensions[extPropGoType] == nil {
 		return nil, nil
 	}
 
 	goTypeImportExt := v.Value.Extensions[extPropGoImport]
 
-	importI, ok := goTypeImportExt.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("failed to convert type: %T", goTypeImportExt)
+	// Use the extension parsing approach to handle YAML nodes
+	var importI map[string]interface{}
+	if err := decodeYamlNode(goTypeImportExt, &importI); err != nil {
+		return nil, fmt.Errorf("failed to decode import extension: %w", err)
 	}
 
 	gi := goImport{}
@@ -1096,12 +1129,9 @@ func TypeDefinitionsEquivalent(t1, t2 TypeDefinition) bool {
 }
 
 // isAdditionalPropertiesExplicitFalse determines whether an openapi3.Schema is explicitly defined as `additionalProperties: false`
-func isAdditionalPropertiesExplicitFalse(s *openapi3.Schema) bool {
-	if s.AdditionalProperties.Has == nil {
-		return false
-	}
-
-	return *s.AdditionalProperties.Has == false //nolint:staticcheck
+func isAdditionalPropertiesExplicitFalse(s *openapi.Schema) bool {
+	// In our wrapper, Has is a bool, and explicit false means Has is false and Schema is nil
+	return !s.AdditionalProperties.Has && s.AdditionalProperties.Schema == nil
 }
 
 func sliceContains[E comparable](s []E, v E) bool {

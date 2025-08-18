@@ -1,0 +1,440 @@
+openapi: "3.1.0"
+info:
+  title: OpenAPI 3.1 Migration Edge Cases Test
+  version: "1.0.0"
+  summary: Test edge cases and features most likely to break during kin-openapi to libopenapi migration
+  description: |
+    This specification tests edge cases that are most likely to cause issues
+    during the migration from kin-openapi to libopenapi, including:
+    - Complex enum handling
+    - Extension property parsing
+    - YAML node serialization edge cases
+    - Circular references
+    - Deep nesting scenarios
+    - Mixed OpenAPI 3.0/3.1 features
+
+jsonSchemaDialect: "https://json-schema.org/draft/2020-12/schema"
+
+paths:
+  /edge-cases/enums:
+    post:
+      operationId: testComplexEnums
+      summary: Test complex enum scenarios
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplexEnumTest'
+      responses:
+        '200':
+          description: Success
+
+  /edge-cases/extensions:
+    get:
+      operationId: testExtensions
+      summary: Test extension property handling
+      x-custom-extension: "test-value"
+      x-complex-extension:
+        nested:
+          value: 42
+          array: [1, 2, 3]
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtensionTest'
+
+  /edge-cases/circular/{id}:
+    get:
+      operationId: testCircularRefs
+      summary: Test circular reference handling
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: ["string", "integer"]
+          x-parameter-extension: "custom-param-data"
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CircularRefTest'
+
+  /edge-cases/deep-nesting:
+    post:
+      operationId: testDeepNesting
+      summary: Test deeply nested schema structures
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeeplyNestedTest'
+      responses:
+        '200':
+          description: Success
+
+  /edge-cases/mixed-versions:
+    get:
+      operationId: testMixedVersionFeatures
+      summary: Test mixed 3.0/3.1 features
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MixedVersionTest'
+
+webhooks:
+  complexWebhook:
+    post:
+      operationId: handleComplexWebhook
+      summary: Complex webhook with edge cases
+      x-webhook-extension: "webhook-metadata"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplexWebhookPayload'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/ComplexWebhookPayload'
+      responses:
+        '200':
+          description: Webhook processed
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+components:
+  schemas:
+    # Complex Enum Test - tests various enum edge cases
+    ComplexEnumTest:
+      type: object
+      properties:
+        stringEnum:
+          type: string
+          enum: ["", "  ", "special-chars!@#$%", "unicode-🎉", "quote\"test", "slash\\test"]
+          x-enum-varnames: ["Empty", "Spaces", "SpecialChars", "Unicode", "Quote", "Slash"]
+        intEnum:
+          type: integer
+          enum: [0, -1, 2147483647, -2147483648]  # Test edge int values
+        floatEnum:
+          type: number
+          enum: [0.0, -0.0, 3.14159, 1e-10, 1e10, "NaN", "Infinity", "-Infinity"]
+        nullableEnum:
+          type: ["string", "null"]
+          enum: ["active", "inactive", null]
+        mixedTypeEnum:
+          type: ["string", "integer", "null"]
+          enum: ["text", 42, null, "another"]
+        constWithEnum:
+          # This is an edge case - const should take precedence over enum
+          const: "fixed-value"
+          enum: ["fixed-value", "other-value"]
+
+    # Extension Test - tests x- extension parsing
+    ExtensionTest:
+      type: object
+      x-custom-schema-extension: "schema-level-extension"
+      x-go-type: "CustomType"
+      x-go-type-import:
+        name: "CustomType"
+        package: "github.com/example/types"
+      x-enum-varnames: ["First", "Second", "Third"]
+      x-oapi-codegen-extra-tags:
+        xml: "custom-xml-tag"
+        yaml: "custom-yaml-tag"
+      properties:
+        id:
+          type: ["string", "integer"]
+          x-go-name: "ID"
+          x-go-type-skip-optional-pointer: true
+        name:
+          type: string
+          x-omitempty: false
+          x-deprecated-reason: "Use displayName instead"
+        metadata:
+          type: object
+          x-go-type: "map[string]interface{}"
+          additionalProperties:
+            type: ["string", "number", "boolean", "null"]
+
+    # Circular Reference Test
+    CircularRefTest:
+      type: object
+      properties:
+        id:
+          type: ["string", "integer"]
+        parent:
+          $ref: '#/components/schemas/CircularRefTest'
+          description: "Reference to parent (circular)"
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/CircularRefTest'
+          description: "Array of children (circular)"
+        siblings:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/CircularRefTest'
+          description: "Map of siblings (circular)"
+        metadata:
+          $ref: '#/components/schemas/CircularMetadata'
+
+    CircularMetadata:
+      type: object
+      properties:
+        owner:
+          $ref: '#/components/schemas/CircularRefTest'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/CircularTag'
+
+    CircularTag:
+      type: object
+      properties:
+        name:
+          type: string
+        parent:
+          $ref: '#/components/schemas/CircularTag'
+        entities:
+          type: array
+          items:
+            $ref: '#/components/schemas/CircularRefTest'
+
+    # Deeply Nested Test
+    DeeplyNestedTest:
+      type: object
+      properties:
+        level1:
+          type: object
+          properties:
+            level2:
+              type: object
+              properties:
+                level3:
+                  type: object
+                  properties:
+                    level4:
+                      type: object
+                      properties:
+                        level5:
+                          type: object
+                          properties:
+                            deepData:
+                              type: ["string", "number", "boolean", "null"]
+                            deepArray:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  nestedField:
+                                    type: ["string", "integer"]
+                            deepUnion:
+                              type: ["object", "array", "string"]
+                              # This tests complex union handling at deep nesting
+                              oneOf:
+                                - type: object
+                                  properties:
+                                    objField:
+                                      type: string
+                                - type: array
+                                  items:
+                                    type: integer
+                                - type: string
+
+    # Mixed Version Test - combines 3.0 and 3.1 features
+    MixedVersionTest:
+      type: object
+      properties:
+        # OpenAPI 3.0 style features
+        oldNullable:
+          type: string
+          nullable: true
+        oldExample:
+          type: string
+          example: "old style"
+        
+        # OpenAPI 3.1 style features
+        newUnionType:
+          type: ["string", "null"]
+        newExamples:
+          type: string
+          examples: ["new", "style", "examples"]
+        constValue:
+          const: "constant"
+        
+        # Mixed features that should work in both
+        complexEnum:
+          type: string
+          enum: ["a", "b", "c"]
+          example: "a"  # 3.0 style
+          examples: ["a", "b"]  # 3.1 style (should override example)
+          
+        # Complex validation with both styles
+        numberField:
+          type: number
+          minimum: 0
+          exclusiveMaximum: 100  # 3.1 style (number)
+          nullable: true  # 3.0 style
+          example: 50  # 3.0 style
+
+    # Complex Webhook Payload
+    ComplexWebhookPayload:
+      type: object
+      required:
+        - eventType
+        - timestamp
+      properties:
+        eventType:
+          const: "complex-event"
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: ["object", "array", "string", "null"]
+          description: "Flexible data field"
+        metadata:
+          type: object
+          properties:
+            source:
+              type: ["string", "null"]
+            traceId:
+              type: ["string", "null"]
+            correlationId:
+              type: ["string", "integer", "null"]
+          additionalProperties:
+            type: ["string", "number", "boolean", "null"]
+        signature:
+          type: string
+          contentEncoding: "base64"
+          description: "HMAC signature for verification"
+
+    # Validation Error Schema
+    ValidationError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: ["string", "integer"]
+        message:
+          type: string
+        field:
+          type: ["string", "null"]
+        details:
+          type: ["object", "array", "null"]
+        timestamp:
+          type: string
+          format: date-time
+
+    # Test various reference edge cases
+    RefEdgeCases:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          properties:
+            additionalField:
+              type: string
+      oneOf:
+        - $ref: '#/components/schemas/TypeA'
+        - $ref: '#/components/schemas/TypeB'
+        - type: object
+          properties:
+            directType:
+              const: "direct"
+      anyOf:
+        - $ref: '#/components/schemas/OptionalTypeA'
+        - $ref: '#/components/schemas/OptionalTypeB'
+
+    BaseSchema:
+      type: object
+      properties:
+        id:
+          type: ["string", "integer"]
+        baseField:
+          type: string
+
+    TypeA:
+      type: object
+      properties:
+        typeAField:
+          type: string
+          const: "type-a"
+
+    TypeB:
+      type: object
+      properties:
+        typeBField:
+          type: integer
+          const: 42
+
+    OptionalTypeA:
+      type: object
+      properties:
+        optionalA:
+          type: ["string", "null"]
+
+    OptionalTypeB:
+      type: object
+      properties:
+        optionalB:
+          type: ["number", "null"]
+
+    # Test array edge cases
+    ArrayEdgeCases:
+      type: object
+      properties:
+        # Empty array with no items schema
+        emptyArray:
+          type: array
+        # Array with union item types
+        unionArray:
+          type: array
+          items:
+            type: ["string", "integer", "null"]
+        # Array with complex items
+        complexArray:
+          type: array
+          items:
+            oneOf:
+              - type: string
+              - type: object
+                properties:
+                  nested:
+                    type: ["string", "null"]
+        # Nested arrays
+        nestedArrays:
+          type: array
+          items:
+            type: array
+            items:
+              type: ["string", "integer"]
+        # Array with prefixItems (3.1 feature)
+        prefixArray:
+          type: array
+          prefixItems:
+            - type: string
+            - type: integer
+          items:
+            type: ["string", "null"]
+
+  # Test extension in components
+  x-component-extension:
+    customData: "component-level-extension"
+    nested:
+      values: [1, 2, 3]

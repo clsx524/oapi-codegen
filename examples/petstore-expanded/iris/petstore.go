@@ -12,7 +12,6 @@ import (
 	"os"
 
 	"github.com/kataras/iris/v12"
-	middleware "github.com/oapi-codegen/iris-middleware"
 	"github.com/oapi-codegen/oapi-codegen/v2/examples/petstore-expanded/iris/api"
 )
 
@@ -31,7 +30,8 @@ func NewIrisPetServer(petStore *api.PetStore, port int) *iris.Application {
 
 	// Use our validation middleware to check all requests against the
 	// OpenAPI schema.
-	i.Use(middleware.OapiRequestValidator(swagger))
+	// TODO: Re-enable when middleware supports openapi.T instead of openapi3.T
+	// i.Use(middleware.OapiRequestValidator(swagger))
 
 	api.RegisterHandlers(i, petStore)
 

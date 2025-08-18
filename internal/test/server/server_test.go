@@ -38,7 +38,7 @@ func (s *fakeServer) GetWithArgs(w http.ResponseWriter, r *http.Request, params 
 
 // Getter with referenced parameter and referenced response
 // (GET /get-with-references/{global_argument}/{argument})
-func (s *fakeServer) GetWithReferences(w http.ResponseWriter, r *http.Request, globalArgument int64, argument Argument) {
+func (s *fakeServer) GetWithReferences(w http.ResponseWriter, r *http.Request, globalArgument int64, argument string) {
 	// not implemented
 	w.WriteHeader(http.StatusTeapot)
 }
@@ -59,7 +59,7 @@ func (s *fakeServer) GetReservedKeyword(w http.ResponseWriter, r *http.Request) 
 
 // Create a resource
 // (POST /resource/{argument})
-func (s *fakeServer) CreateResource(w http.ResponseWriter, r *http.Request, argument Argument) {
+func (s *fakeServer) CreateResource(w http.ResponseWriter, r *http.Request, argument string) {
 	// not implemented
 	w.WriteHeader(http.StatusTeapot)
 }

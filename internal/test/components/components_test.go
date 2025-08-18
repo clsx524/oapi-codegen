@@ -64,7 +64,7 @@ func TestAdditionalProperties(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, bossSchema, obj5["boss"])
 
-	bossSchemaNullable := &SchemaObjectNullable{
+	bossSchemaNullable := SchemaObjectNullable{
 		FirstName: "bob",
 		Role:      "warehouse manager",
 	}
@@ -76,7 +76,8 @@ func TestAdditionalProperties(t *testing.T) {
 	employee, ok := obj7["employee"]
 	assert.True(t, ok)
 	assert.Equal(t, bossSchemaNullable, obj7["boss"])
-	assert.Nil(t, employee)
+	// employee should be a zero value struct when null in JSON
+	assert.Equal(t, SchemaObjectNullable{}, employee)
 }
 
 func TestOneOf(t *testing.T) {

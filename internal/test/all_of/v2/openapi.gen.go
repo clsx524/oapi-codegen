@@ -8,14 +8,22 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"fmt"
-	"net/url"
-	"path"
 	"strings"
 
-	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
-// Person defines model for Person.
+// Defines values for ProductDetailsStatus.
+const (
+	Active       ProductDetailsStatus = "active"
+	Discontinued ProductDetailsStatus = "discontinued"
+	Draft        ProductDetailsStatus = "draft"
+	Pending      ProductDetailsStatus = "pending"
+)
+
+// Person These are fields that specify a person. They are all optional, and
+// would be used by an `Edit` style API endpoint, where each is optional.
 type Person struct {
 	FirstName          string `json:"FirstName"`
 	GovernmentIDNumber *int64 `json:"GovernmentIDNumber,omitempty"`
@@ -30,28 +38,55 @@ type PersonProperties struct {
 	LastName           *string `json:"LastName,omitempty"`
 }
 
-// PersonWithID defines model for PersonWithID.
+// PersonWithID These are fields that specify a person. They are all optional, and
+// would be used by an `Edit` style API endpoint, where each is optional.
 type PersonWithID struct {
 	FirstName          string `json:"FirstName"`
 	GovernmentIDNumber *int64 `json:"GovernmentIDNumber,omitempty"`
-	ID                 int64  `json:"ID"`
 	LastName           string `json:"LastName"`
 }
+
+// Product Base product schema
+type Product struct {
+	Id   *openapi_types.UUID `json:"id,omitempty"`
+	Name *string             `json:"name,omitempty"`
+}
+
+// ProductDetails Base product schema
+type ProductDetails struct {
+	// Category Category
+	Category *string `json:"category,omitempty"`
+
+	// DisplayName Display name
+	DisplayName *string             `json:"display_name,omitempty"`
+	Id          *openapi_types.UUID `json:"id,omitempty"`
+	Name        *string             `json:"name,omitempty"`
+
+	// Status The status of the product
+	Status *ProductDetailsStatus `json:"status,omitempty"`
+}
+
+// ProductDetailsStatus The status of the product
+type ProductDetailsStatus string
 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"AP//YEsb5RgIAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
@@ -99,27 +134,20 @@ func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
 // The logic of resolving external references is tightly connected to "import-mapping" feature.
 // Externally referenced files must be embedded in the corresponding golang packages.
 // Urls can be supported but this task was out of the scope.
-func GetSwagger() (swagger *openapi3.T, err error) {
+func GetSwagger() (swagger *openapi.T, err error) {
 	resolvePath := PathToRawSpec("")
+	_ = resolvePath // TODO: Use resolvePath when ReadFromURIFunc is implemented
 
-	loader := openapi3.NewLoader()
+	loader := openapi.NewLoader()
 	loader.IsExternalRefsAllowed = true
-	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
-		pathToFile := url.String()
-		pathToFile = path.Clean(pathToFile)
-		getSpec, ok := resolvePath[pathToFile]
-		if !ok {
-			err1 := fmt.Errorf("path not found: %s", pathToFile)
-			return nil, err1
-		}
-		return getSpec()
-	}
+	// TODO: Add ReadFromURIFunc support to our abstraction layer
 	var specData []byte
 	specData, err = rawSpec()
 	if err != nil {
 		return
 	}
-	swagger, err = loader.LoadFromData(specData)
+	// Use LoadFromDataWithBasePath with current directory as base path
+	swagger, err = loader.LoadFromDataWithBasePath(specData, ".")
 	if err != nil {
 		return
 	}

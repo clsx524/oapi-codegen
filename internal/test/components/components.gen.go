@@ -48,7 +48,6 @@ const (
 
 // Defines values for EnumUnion.
 const (
-	EnumUnionFour  EnumUnion = "Four"
 	EnumUnionOne   EnumUnion = "One"
 	EnumUnionThree EnumUnion = "Three"
 	EnumUnionTwo   EnumUnion = "Two"
@@ -57,7 +56,6 @@ const (
 // Defines values for EnumUnion2.
 const (
 	EnumUnion2One   EnumUnion2 = "One"
-	EnumUnion2Seven EnumUnion2 = "Seven"
 	EnumUnion2Three EnumUnion2 = "Three"
 	EnumUnion2Two   EnumUnion2 = "Two"
 )
@@ -69,27 +67,6 @@ const (
 	FunnyValuesEmpty    FunnyValues = ""
 	FunnyValuesN5       FunnyValues = "5"
 	FunnyValuesPercent  FunnyValues = "%"
-)
-
-// Defines values for EnumParam1.
-const (
-	EnumParam1Both EnumParam1 = "both"
-	EnumParam1Off  EnumParam1 = "off"
-	EnumParam1On   EnumParam1 = "on"
-)
-
-// Defines values for EnumParam2.
-const (
-	EnumParam2Both EnumParam2 = "both"
-	EnumParam2Off  EnumParam2 = "off"
-	EnumParam2On   EnumParam2 = "on"
-)
-
-// Defines values for EnumParam3.
-const (
-	Alice EnumParam3 = "alice"
-	Bob   EnumParam3 = "bob"
-	Eve   EnumParam3 = "eve"
 )
 
 // AdditionalPropertiesObject1 Has additional properties of type int
@@ -114,15 +91,9 @@ type AdditionalPropertiesObject3 struct {
 
 // AdditionalPropertiesObject4 Has anonymous field which has additional properties
 type AdditionalPropertiesObject4 struct {
-	Inner                AdditionalPropertiesObject4_Inner `json:"inner"`
-	Name                 string                            `json:"name"`
-	AdditionalProperties map[string]interface{}            `json:"-"`
-}
-
-// AdditionalPropertiesObject4_Inner defines model for AdditionalPropertiesObject4.Inner.
-type AdditionalPropertiesObject4_Inner struct {
-	Name                 string                 `json:"name"`
-	AdditionalProperties map[string]interface{} `json:"-"`
+	Inner                AdditionalPropertiesObject3 `json:"inner"`
+	Name                 string                      `json:"name"`
+	AdditionalProperties map[string]interface{}      `json:"-"`
 }
 
 // AdditionalPropertiesObject5 Has additional properties with schema for dictionaries
@@ -132,7 +103,7 @@ type AdditionalPropertiesObject5 map[string]SchemaObject
 type AdditionalPropertiesObject6 = []map[string]SchemaObject
 
 // AdditionalPropertiesObject7 Has additional properties with schema for dictionaries
-type AdditionalPropertiesObject7 map[string]*SchemaObjectNullable
+type AdditionalPropertiesObject7 map[string]SchemaObjectNullable
 
 // AnyOfObject1 simple anyOf case
 type AnyOfObject1 struct {
@@ -157,10 +128,12 @@ type Enum4 string
 // Enum5 Numerical enum
 type Enum5 int
 
-// EnumUnion defines model for EnumUnion.
+// EnumUnion Conflicts with Enum2, enum values need to be prefixed with type
+// name.
 type EnumUnion string
 
-// EnumUnion2 defines model for EnumUnion2.
+// EnumUnion2 Conflicts with Enum2, enum values need to be prefixed with type
+// name.
 type EnumUnion2 string
 
 // FunnyValues Edge cases for enum names
@@ -367,25 +340,8 @@ type OneOfVariant51 struct {
 	Id            int    `json:"id"`
 }
 
-// EnumParam1 defines model for EnumParam1.
-type EnumParam1 string
-
-// EnumParam2 defines model for EnumParam2.
-type EnumParam2 string
-
-// EnumParam3 defines model for EnumParam3.
-type EnumParam3 string
-
-// RenamedParameterObject // a parameter
-type RenamedParameterObject string
-
 // RenamedResponseObject defines model for ResponseObject.
 type RenamedResponseObject struct {
-	Field SchemaObject `json:"Field"`
-}
-
-// RenamedRequestBody defines model for RequestBody.
-type RenamedRequestBody struct {
 	Field SchemaObject `json:"Field"`
 }
 
@@ -728,72 +684,6 @@ func (a AdditionalPropertiesObject4) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling 'inner': %w", err)
 	}
-
-	object["name"], err = json.Marshal(a.Name)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling 'name': %w", err)
-	}
-
-	for fieldName, field := range a.AdditionalProperties {
-		object[fieldName], err = json.Marshal(field)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
-		}
-	}
-	return json.Marshal(object)
-}
-
-// Getter for additional properties for AdditionalPropertiesObject4_Inner. Returns the specified
-// element and whether it was found
-func (a AdditionalPropertiesObject4_Inner) Get(fieldName string) (value interface{}, found bool) {
-	if a.AdditionalProperties != nil {
-		value, found = a.AdditionalProperties[fieldName]
-	}
-	return
-}
-
-// Setter for additional properties for AdditionalPropertiesObject4_Inner
-func (a *AdditionalPropertiesObject4_Inner) Set(fieldName string, value interface{}) {
-	if a.AdditionalProperties == nil {
-		a.AdditionalProperties = make(map[string]interface{})
-	}
-	a.AdditionalProperties[fieldName] = value
-}
-
-// Override default JSON handling for AdditionalPropertiesObject4_Inner to handle AdditionalProperties
-func (a *AdditionalPropertiesObject4_Inner) UnmarshalJSON(b []byte) error {
-	object := make(map[string]json.RawMessage)
-	err := json.Unmarshal(b, &object)
-	if err != nil {
-		return err
-	}
-
-	if raw, found := object["name"]; found {
-		err = json.Unmarshal(raw, &a.Name)
-		if err != nil {
-			return fmt.Errorf("error reading 'name': %w", err)
-		}
-		delete(object, "name")
-	}
-
-	if len(object) != 0 {
-		a.AdditionalProperties = make(map[string]interface{})
-		for fieldName, fieldBuf := range object {
-			var fieldVal interface{}
-			err := json.Unmarshal(fieldBuf, &fieldVal)
-			if err != nil {
-				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
-			}
-			a.AdditionalProperties[fieldName] = fieldVal
-		}
-	}
-	return nil
-}
-
-// Override default JSON handling for AdditionalPropertiesObject4_Inner to handle AdditionalProperties
-func (a AdditionalPropertiesObject4_Inner) MarshalJSON() ([]byte, error) {
-	var err error
-	object := make(map[string]json.RawMessage)
 
 	object["name"], err = json.Marshal(a.Name)
 	if err != nil {
@@ -1230,58 +1120,6 @@ func (t *OneOfObject12) FromOneOfObject121(v OneOfObject121) error {
 
 // MergeOneOfObject121 performs a merge with any union data inside the OneOfObject12, using the provided OneOfObject121
 func (t *OneOfObject12) MergeOneOfObject121(v OneOfObject121) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsOneOfVariant3 returns the union data inside the OneOfObject12 as a OneOfVariant3
-func (t OneOfObject12) AsOneOfVariant3() (OneOfVariant3, error) {
-	var body OneOfVariant3
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromOneOfVariant3 overwrites any union data inside the OneOfObject12 as the provided OneOfVariant3
-func (t *OneOfObject12) FromOneOfVariant3(v OneOfVariant3) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeOneOfVariant3 performs a merge with any union data inside the OneOfObject12, using the provided OneOfVariant3
-func (t *OneOfObject12) MergeOneOfVariant3(v OneOfVariant3) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	merged, err := runtime.JSONMerge(t.union, b)
-	t.union = merged
-	return err
-}
-
-// AsOneOfVariant4 returns the union data inside the OneOfObject12 as a OneOfVariant4
-func (t OneOfObject12) AsOneOfVariant4() (OneOfVariant4, error) {
-	var body OneOfVariant4
-	err := json.Unmarshal(t.union, &body)
-	return body, err
-}
-
-// FromOneOfVariant4 overwrites any union data inside the OneOfObject12 as the provided OneOfVariant4
-func (t *OneOfObject12) FromOneOfVariant4(v OneOfVariant4) error {
-	b, err := json.Marshal(v)
-	t.union = b
-	return err
-}
-
-// MergeOneOfVariant4 performs a merge with any union data inside the OneOfObject12, using the provided OneOfVariant4
-func (t *OneOfObject12) MergeOneOfVariant4(v OneOfVariant4) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err

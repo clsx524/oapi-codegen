@@ -11,14 +11,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"path"
 	"strings"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gorilla/mux"
 	externalRef0 "github.com/oapi-codegen/oapi-codegen/v2/internal/test/issues/issue-1378/bionicle"
 	externalRef1 "github.com/oapi-codegen/oapi-codegen/v2/internal/test/issues/issue-1378/common"
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
 )
@@ -27,7 +26,7 @@ import (
 type ServerInterface interface {
 
 	// (GET /bionicle/{name})
-	GetBionicleName(w http.ResponseWriter, r *http.Request, name externalRef0.BionicleName)
+	GetBionicleName(w http.ResponseWriter, r *http.Request, name string)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -45,7 +44,7 @@ func (siw *ServerInterfaceWrapper) GetBionicleName(w http.ResponseWriter, r *htt
 	var err error
 
 	// ------------- Path parameter "name" -------------
-	var name externalRef0.BionicleName
+	var name string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "name", mux.Vars(r)["name"], &name, runtime.BindStyledParameterOptions{Explode: false, Required: true})
 	if err != nil {
@@ -183,14 +182,14 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 }
 
 type GetBionicleNameRequestObject struct {
-	Name externalRef0.BionicleName `json:"name"`
+	Name string `json:"name"`
 }
 
 type GetBionicleNameResponseObject interface {
 	VisitGetBionicleNameResponse(w http.ResponseWriter) error
 }
 
-type GetBionicleName200JSONResponse externalRef0.Bionicle
+type GetBionicleName200JSONResponse = Bionicle
 
 func (response GetBionicleName200JSONResponse) VisitGetBionicleNameResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -247,7 +246,7 @@ type strictHandler struct {
 }
 
 // GetBionicleName operation middleware
-func (sh *strictHandler) GetBionicleName(w http.ResponseWriter, r *http.Request, name externalRef0.BionicleName) {
+func (sh *strictHandler) GetBionicleName(w http.ResponseWriter, r *http.Request, name string) {
 	var request GetBionicleNameRequestObject
 
 	request.Name = name
@@ -275,12 +274,9 @@ func (sh *strictHandler) GetBionicleName(w http.ResponseWriter, r *http.Request,
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/5RRQU/zMAz9K5O/7xg1HXDqcRfEBS7cpgllmbtmWpPgeEioyn9HTldtYwOJXpzEr37P",
-	"7w1gQx+DR88JmgGiIdMjI5Xb2gXv7B7fpsOz6VEaG0yWXGQXPDQgr7PQzrjDme0MGctIoMBJMxruQIEv",
-	"f45FAeH7wRFuoGE6oIJkO+yNTObPKLjE5PwWcs5T81LQ4ngomilEJHZYIP4o8fugc9LliFqpCRXWO7Q8",
-	"0jnfhusdXzExKGDHQjpdP5DS2J9XdVVDVhAiehMdNHBf1dUcVHGgSNOTfD0If5a3LbIU2cAI1dMGGnhE",
-	"Xpw7ri5yWQ7wn7CFBv7pU3r6BNG3c8sr8SDF4NNo1V1dS7HBM/oiw8S4d7YI0bskiw1n2dxiPYajr5PJ",
-	"xc2HP3IEjy/tjzv+wrbK0/cVAAD//37MjEPUAgAA",
+	"H4sIAAAAAAAC/0SMWwrCMBBF93L1s+SBf1mHG4h1igNpEpJBkDBdu1Qtft5zOHeA81IQBu7U58ZVuGQE",
+	"XKkLJghLov98Uutf740zDjqhVMqxMgIuxhmPCTXKo++P9sYl85zIjhxX0p2dGy0IOIx5xTWd7Cexmz/w",
+	"5n+Fqr4DAAD//1rngHSiAAAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
@@ -340,27 +336,20 @@ func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
 // The logic of resolving external references is tightly connected to "import-mapping" feature.
 // Externally referenced files must be embedded in the corresponding golang packages.
 // Urls can be supported but this task was out of the scope.
-func GetSwagger() (swagger *openapi3.T, err error) {
+func GetSwagger() (swagger *openapi.T, err error) {
 	resolvePath := PathToRawSpec("")
+	_ = resolvePath // TODO: Use resolvePath when ReadFromURIFunc is implemented
 
-	loader := openapi3.NewLoader()
+	loader := openapi.NewLoader()
 	loader.IsExternalRefsAllowed = true
-	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
-		pathToFile := url.String()
-		pathToFile = path.Clean(pathToFile)
-		getSpec, ok := resolvePath[pathToFile]
-		if !ok {
-			err1 := fmt.Errorf("path not found: %s", pathToFile)
-			return nil, err1
-		}
-		return getSpec()
-	}
+	// TODO: Add ReadFromURIFunc support to our abstraction layer
 	var specData []byte
 	specData, err = rawSpec()
 	if err != nil {
 		return
 	}
-	swagger, err = loader.LoadFromData(specData)
+	// Use LoadFromDataWithBasePath with current directory as base path
+	swagger, err = loader.LoadFromDataWithBasePath(specData, ".")
 	if err != nil {
 		return
 	}

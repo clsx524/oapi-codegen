@@ -3,7 +3,7 @@ package codegen
 import (
 	"testing"
 
-	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +23,7 @@ func TestFilterOperationsByTag(t *testing.T) {
 			},
 		}
 
-		loader := openapi3.NewLoader()
+		loader := openapi.NewLoader()
 		loader.IsExternalRefsAllowed = true
 
 		// Get a spec from the test definition in this file:
@@ -52,7 +52,7 @@ func TestFilterOperationsByTag(t *testing.T) {
 			},
 		}
 
-		loader := openapi3.NewLoader()
+		loader := openapi.NewLoader()
 		loader.IsExternalRefsAllowed = true
 
 		// Get a spec from the test definition in this file:
@@ -84,7 +84,7 @@ func TestFilterOperationsByOperationID(t *testing.T) {
 			},
 		}
 
-		loader := openapi3.NewLoader()
+		loader := openapi.NewLoader()
 		loader.IsExternalRefsAllowed = true
 
 		// Get a spec from the test definition in this file:
@@ -113,7 +113,7 @@ func TestFilterOperationsByOperationID(t *testing.T) {
 			},
 		}
 
-		loader := openapi3.NewLoader()
+		loader := openapi.NewLoader()
 		loader.IsExternalRefsAllowed = true
 
 		// Get a spec from the test definition in this file:

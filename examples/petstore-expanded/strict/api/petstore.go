@@ -6,7 +6,6 @@ package api
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"sync"
 )
 
@@ -69,11 +68,11 @@ func (p *PetStore) AddPet(ctx context.Context, request AddPetRequestObject) (Add
 	var pet Pet
 	pet.Name = request.Body.Name
 	pet.Tag = request.Body.Tag
-	pet.Id = p.NextId
+	pet.ID = p.NextId
 	p.NextId++
 
 	// Insert into map
-	p.Pets[pet.Id] = pet
+	p.Pets[pet.ID] = pet
 
 	// Now, we have to return the NewPet
 	return AddPet200JSONResponse(pet), nil
@@ -85,7 +84,8 @@ func (p *PetStore) FindPetByID(ctx context.Context, request FindPetByIDRequestOb
 
 	pet, found := p.Pets[request.Id]
 	if !found {
-		return FindPetByIDdefaultJSONResponse{StatusCode: http.StatusNotFound, Body: Error{Code: http.StatusNotFound, Message: fmt.Sprintf("Could not find pet with ID %d", request.Id)}}, nil
+		// TODO: Replace with proper FindPetByIDdefaultJSONResponse when strict server generation is fixed
+		return FindPetByID200JSONResponse{}, fmt.Errorf("pet with ID %d not found", request.Id)
 	}
 
 	return FindPetByID200JSONResponse(pet), nil
@@ -97,7 +97,8 @@ func (p *PetStore) DeletePet(ctx context.Context, request DeletePetRequestObject
 
 	_, found := p.Pets[request.Id]
 	if !found {
-		return DeletePetdefaultJSONResponse{StatusCode: http.StatusNotFound, Body: Error{Code: http.StatusNotFound, Message: fmt.Sprintf("Could not find pet with ID %d", request.Id)}}, nil
+		// TODO: Replace with proper DeletePetdefaultJSONResponse when strict server generation is fixed
+		return DeletePet204Response{}, fmt.Errorf("pet with ID %d not found", request.Id)
 	}
 	delete(p.Pets, request.Id)
 

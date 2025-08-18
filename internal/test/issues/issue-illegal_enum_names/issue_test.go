@@ -6,13 +6,13 @@ import (
 	"go/token"
 	"testing"
 
-	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
 	"github.com/oapi-codegen/oapi-codegen/v2/pkg/codegen"
 	"github.com/stretchr/testify/require"
 )
 
 func TestIllegalEnumNames(t *testing.T) {
-	swagger, err := openapi3.NewLoader().LoadFromFile("spec.yaml")
+	swagger, err := openapi.NewLoader().LoadFromFile("spec.yaml")
 	require.NoError(t, err)
 
 	opts := codegen.Configuration{

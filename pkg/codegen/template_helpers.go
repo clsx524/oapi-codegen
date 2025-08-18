@@ -23,7 +23,7 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
-	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
 	"github.com/oapi-codegen/oapi-codegen/v2/pkg/util"
 )
 
@@ -300,7 +300,7 @@ func stripNewLines(s string) string {
 //
 // goTypePrefix is the prefix being used to create underlying types in the template (likely the `ServerObjectDefinition.GoName`)
 // variables are this `ServerObjectDefinition`'s variables for the Server object (likely the `ServerObjectDefinition.OAPISchema`)
-func genServerURLWithVariablesFunctionParams(goTypePrefix string, variables map[string]*openapi3.ServerVariable) string {
+func genServerURLWithVariablesFunctionParams(goTypePrefix string, variables map[string]*openapi.ServerVariable) string {
 	keys := SortedMapKeys(variables)
 
 	if len(variables) == 0 {

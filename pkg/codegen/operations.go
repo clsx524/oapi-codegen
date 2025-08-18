@@ -23,8 +23,7 @@ import (
 	"text/template"
 	"unicode"
 
-	"github.com/getkin/kin-openapi/openapi3"
-
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
 	"github.com/oapi-codegen/oapi-codegen/v2/pkg/util"
 )
 
@@ -32,7 +31,7 @@ type ParameterDefinition struct {
 	ParamName string // The original json parameter name, eg param_name
 	In        string // Where the parameter is defined - path, header, cookie, query
 	Required  bool   // Is this a required parameter?
-	Spec      *openapi3.Parameter
+	Spec      *openapi.Parameter
 	Schema    Schema
 }
 
@@ -57,9 +56,9 @@ func (pd *ParameterDefinition) JsonTag() string {
 
 func (pd *ParameterDefinition) IsJson() bool {
 	p := pd.Spec
-	if len(p.Content) == 1 {
-		for k := range p.Content {
-			if util.IsMediaTypeJson(k) {
+	if p.Content != nil && len(p.Content) == 1 {
+		for mediaType := range p.Content {
+			if util.IsMediaTypeJson(mediaType) {
 				return true
 			}
 		}
@@ -69,10 +68,10 @@ func (pd *ParameterDefinition) IsJson() bool {
 
 func (pd *ParameterDefinition) IsPassThrough() bool {
 	p := pd.Spec
-	if len(p.Content) > 1 {
+	if p.Content != nil && len(p.Content) > 1 {
 		return true
 	}
-	if len(p.Content) == 1 {
+	if p.Content != nil && len(p.Content) == 1 {
 		return !pd.IsJson()
 	}
 	return false
@@ -127,9 +126,11 @@ func (pd ParameterDefinition) GoVariableName() string {
 
 func (pd ParameterDefinition) GoName() string {
 	goName := pd.ParamName
-	if extension, ok := pd.Spec.Extensions[extGoName]; ok {
-		if extGoFieldName, err := extParseGoFieldName(extension); err == nil {
-			goName = extGoFieldName
+	if pd.Spec.Extensions != nil {
+		if extension, ok := pd.Spec.Extensions[extGoName]; ok {
+			if extGoFieldName, err := extParseGoFieldName(extension); err == nil {
+				goName = extGoFieldName
+			}
 		}
 	}
 	return SchemaNameToTypeName(goName)
@@ -160,7 +161,7 @@ func (p ParameterDefinitions) FindByName(name string) *ParameterDefinition {
 // DescribeParameters walks the given parameters dictionary, and generates the above
 // descriptors into a flat list. This makes it a lot easier to traverse the
 // data in the template engine.
-func DescribeParameters(params openapi3.Parameters, path []string) ([]ParameterDefinition, error) {
+func DescribeParameters(params []*openapi.ParameterRef, path []string) ([]ParameterDefinition, error) {
 	outParams := make([]ParameterDefinition, 0)
 	for _, paramOrRef := range params {
 		param := paramOrRef.Value
@@ -174,7 +175,7 @@ func DescribeParameters(params openapi3.Parameters, path []string) ([]ParameterD
 		pd := ParameterDefinition{
 			ParamName: param.Name,
 			In:        param.In,
-			Required:  param.Required,
+			Required:  param.IsRequired(),
 			Spec:      param,
 			Schema:    goType,
 		}
@@ -200,7 +201,7 @@ type SecurityDefinition struct {
 	Scopes       []string
 }
 
-func DescribeSecurityDefinition(securityRequirements openapi3.SecurityRequirements) []SecurityDefinition {
+func DescribeSecurityDefinition(securityRequirements openapi.SecurityRequirements) []SecurityDefinition {
 	outDefs := make([]SecurityDefinition, 0)
 
 	for _, sr := range securityRequirements {
@@ -230,7 +231,7 @@ type OperationDefinition struct {
 	Summary             string                  // Summary string from Swagger, used to generate a comment
 	Method              string                  // GET, POST, DELETE, etc.
 	Path                string                  // The Swagger path for the operation, like /resource/{id}
-	Spec                *openapi3.Operation
+	Spec                *openapi.Operation
 }
 
 // Params returns the list of all parameters except Path parameters. Path parameters
@@ -309,6 +310,18 @@ func (o *OperationDefinition) GetResponseTypeDefinitions() ([]ResponseTypeDefini
 					if err != nil {
 						return nil, fmt.Errorf("unable to determine Go type for %s.%s: %w", o.OperationId, contentTypeName, err)
 					}
+					
+					// For OpenAPI 3.1 compatibility: if the content schema has a reference,
+					// ensure we use the reference type consistently
+					if contentType.Schema.Ref != "" && contentType.Schema.Value != nil {
+						refType, err := RefPathToGoType(contentType.Schema.Ref)
+						if err == nil {
+							// Override the generated schema type with the reference type
+							// Both RefType and GoType need to be set to ensure TypeDecl() returns the right type
+							responseSchema.RefType = refType
+							responseSchema.GoType = refType
+						}
+					}
 
 					var typeName string
 					switch {
@@ -343,6 +356,7 @@ func (o *OperationDefinition) GetResponseTypeDefinitions() ([]ResponseTypeDefini
 						ContentTypeName:           contentTypeName,
 						AdditionalTypeDefinitions: responseSchema.GetAdditionalTypeDefs(),
 					}
+					// Check if this is a reference and handle appropriately
 					if IsGoTypeReference(responseRef.Ref) {
 						refType, err := RefPathToGoType(responseRef.Ref)
 						if err != nil {
@@ -351,7 +365,18 @@ func (o *OperationDefinition) GetResponseTypeDefinitions() ([]ResponseTypeDefini
 						if jsonCount > 1 && util.IsMediaTypeJson(contentTypeName) {
 							refType += mediaTypeToCamelCase(contentTypeName)
 						}
+						// Both RefType and GoType need to be set to ensure TypeDecl() returns the right type
 						td.Schema.RefType = refType
+						td.Schema.GoType = refType
+					} else {
+						// For OpenAPI 3.1 compatibility: check if the schema itself has a reference
+						// that should be used as the type instead of the generated schema type
+						if responseSchema.RefType != "" {
+							// The schema already has a resolved reference type, use it
+							// Both RefType and GoType need to be set to ensure TypeDecl() returns the right type
+							td.Schema.RefType = responseSchema.RefType
+							td.Schema.GoType = responseSchema.RefType
+						}
 					}
 					tds = append(tds, td)
 				}
@@ -539,7 +564,7 @@ func FilterParameterDefinitionByType(params []ParameterDefinition, in string) []
 }
 
 // OperationDefinitions returns all operations for a swagger definition.
-func OperationDefinitions(swagger *openapi3.T, initialismOverrides bool) ([]OperationDefinition, error) {
+func OperationDefinitions(swagger *openapi.T, initialismOverrides bool) ([]OperationDefinition, error) {
 	var operations []OperationDefinition
 
 	var toCamelCaseFunc func(string) string
@@ -570,10 +595,10 @@ func OperationDefinitions(swagger *openapi3.T, initialismOverrides bool) ([]Oper
 			op := pathOps[opName]
 
 			if pathItem.Servers != nil {
-				op.Servers = &pathItem.Servers
+				op.Servers = pathItem.Servers
 			}
 			// take a copy of operationId, so we don't modify the underlying spec
-			operationId := op.OperationID
+			operationId := op.OperationId
 			// We rely on OperationID to generate function names, it's required
 			if operationId == "" {
 				operationId, err = generateDefaultOperationID(opName, requestPath, toCamelCaseFunc)
@@ -588,12 +613,12 @@ func OperationDefinitions(swagger *openapi3.T, initialismOverrides bool) ([]Oper
 
 			if !globalState.options.Compatibility.PreserveOriginalOperationIdCasingInEmbeddedSpec {
 				// update the existing, shared, copy of the spec if we're not wanting to preserve it
-				op.OperationID = operationId
+				op.OperationId = operationId
 			}
 
 			// These are parameters defined for the specific path method that
 			// we're iterating over.
-			localParams, err := DescribeParameters(op.Parameters, []string{operationId + "Params"})
+			localParams, err := DescribeParameters(openapi.ParametersToRefSlice(op.Parameters), []string{operationId + "Params"})
 			if err != nil {
 				return nil, fmt.Errorf("error describing global parameters for %s/%s: %s",
 					opName, requestPath, err)
@@ -650,18 +675,18 @@ func OperationDefinitions(swagger *openapi3.T, initialismOverrides bool) ([]Oper
 			// See: "Step 2. Applying security:" from the spec:
 			// https://swagger.io/docs/specification/authentication/
 			if op.Security != nil {
-				opDef.SecurityDefinitions = DescribeSecurityDefinition(*op.Security)
+				opDef.SecurityDefinitions = DescribeSecurityDefinition(openapi.ConvertSecurityRequirements(op.Security))
 			} else {
 				// use global securityDefinitions
 				// globalSecurityDefinitions contains the top-level securityDefinitions.
 				// They are the default securityPermissions which are injected into each
 				// path, except for the case where a path explicitly overrides them.
-				opDef.SecurityDefinitions = DescribeSecurityDefinition(swagger.Security)
+				opDef.SecurityDefinitions = DescribeSecurityDefinition(openapi.ConvertSecurityRequirements(swagger.Security))
 
 			}
 
 			if op.RequestBody != nil {
-				opDef.BodyRequired = op.RequestBody.Value.Required
+				opDef.BodyRequired = op.RequestBody.Value.IsRequired()
 			}
 
 			// Generate all the type definitions needed for this operation
@@ -695,7 +720,7 @@ func generateDefaultOperationID(opName string, requestPath string, toCamelCaseFu
 
 // GenerateBodyDefinitions turns the Swagger body definitions into a list of our body
 // definitions which will be used for code generation.
-func GenerateBodyDefinitions(operationID string, bodyOrRef *openapi3.RequestBodyRef) ([]RequestBodyDefinition, []TypeDefinition, error) {
+func GenerateBodyDefinitions(operationID string, bodyOrRef *openapi.RequestBodyRef) ([]RequestBodyDefinition, []TypeDefinition, error) {
 	if bodyOrRef == nil {
 		return nil, nil, nil
 	}
@@ -723,7 +748,7 @@ func GenerateBodyDefinitions(operationID string, bodyOrRef *openapi3.RequestBody
 			tag = "Text"
 		default:
 			bd := RequestBodyDefinition{
-				Required:    body.Required,
+				Required:    body.IsRequired(),
 				ContentType: contentType,
 			}
 			bodyDefinitions = append(bodyDefinitions, bd)
@@ -771,7 +796,7 @@ func GenerateBodyDefinitions(operationID string, bodyOrRef *openapi3.RequestBody
 		}
 
 		bd := RequestBodyDefinition{
-			Required:    body.Required,
+			Required:    body.IsRequired(),
 			Schema:      bodySchema,
 			NameTag:     tag,
 			ContentType: contentType,
@@ -794,7 +819,7 @@ func GenerateBodyDefinitions(operationID string, bodyOrRef *openapi3.RequestBody
 	return bodyDefinitions, typeDefinitions, nil
 }
 
-func GenerateResponseDefinitions(operationID string, responses map[string]*openapi3.ResponseRef) ([]ResponseDefinition, error) {
+func GenerateResponseDefinitions(operationID string, responses map[string]*openapi.ResponseRef) ([]ResponseDefinition, error) {
 	var responseDefinitions []ResponseDefinition
 	// do not let multiple status codes ref to same response, it will break the type switch
 	refSet := make(map[string]struct{})
@@ -861,8 +886,8 @@ func GenerateResponseDefinitions(operationID string, responses map[string]*opena
 			Contents:   responseContentDefinitions,
 			Headers:    responseHeaderDefinitions,
 		}
-		if response.Description != nil {
-			rd.Description = *response.Description
+		if response.Description != "" {
+			rd.Description = response.Description
 		}
 		if IsGoTypeReference(responseOrRef.Ref) {
 			// Convert the reference path to Go type

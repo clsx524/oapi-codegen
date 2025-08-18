@@ -82,11 +82,11 @@ func TestPetStore(t *testing.T) {
 
 	t.Run("Find pet by ID", func(t *testing.T) {
 		pet := api.Pet{
-			Id: 100,
+			ID: 100,
 		}
 
-		store.Pets[pet.Id] = pet
-		rr, _ := doGet(t, fiberPetServer, fmt.Sprintf("/pets/%d", pet.Id))
+		store.Pets[pet.ID] = pet
+		rr, _ := doGet(t, fiberPetServer, fmt.Sprintf("/pets/%d", pet.ID))
 		assert.Equal(t, http.StatusOK, rr.StatusCode)
 
 		var resultPet api.Pet

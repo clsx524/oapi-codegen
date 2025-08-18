@@ -13,11 +13,10 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path"
 	"strings"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
 	strictgin "github.com/oapi-codegen/runtime/strictmiddleware/gin"
 )
 
@@ -30,12 +29,6 @@ type Bar struct {
 type Foo struct {
 	Field1 *string `json:"field1,omitempty"`
 }
-
-// BazApplicationBarPlusJSON defines model for baz.
-type BazApplicationBarPlusJSON = Bar
-
-// BazApplicationFooPlusJSON defines model for baz.
-type BazApplicationFooPlusJSON = Foo
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -205,8 +198,8 @@ type TestResponse struct {
 	HTTPResponse          *http.Response
 	ApplicationbarJSON200 *Bar
 	ApplicationfooJSON200 *Foo
-	ApplicationbarJSON201 *BazApplicationBarPlusJSON
-	ApplicationfooJSON201 *BazApplicationFooPlusJSON
+	ApplicationbarJSON201 *Bar
+	ApplicationfooJSON201 *Foo
 }
 
 // Status returns HTTPResponse.Status
@@ -256,7 +249,7 @@ func ParseTestResponse(rsp *http.Response) (*TestResponse, error) {
 		response.ApplicationbarJSON200 = &dest
 
 	case rsp.Header.Get("Content-Type") == "application/bar+json" && rsp.StatusCode == 201:
-		var dest BazApplicationBarPlusJSON
+		var dest Bar
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -270,7 +263,7 @@ func ParseTestResponse(rsp *http.Response) (*TestResponse, error) {
 		response.ApplicationfooJSON200 = &dest
 
 	case rsp.Header.Get("Content-Type") == "application/foo+json" && rsp.StatusCode == 201:
-		var dest BazApplicationFooPlusJSON
+		var dest Foo
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -340,9 +333,6 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.GET(options.BaseURL+"/test", wrapper.Test)
 }
 
-type BazApplicationBarPlusJSONResponse Bar
-type BazApplicationFooPlusJSONResponse Foo
-
 type TestRequestObject struct {
 }
 
@@ -350,7 +340,7 @@ type TestResponseObject interface {
 	VisitTestResponse(w http.ResponseWriter) error
 }
 
-type Test200ApplicationBarPlusJSONResponse Bar
+type Test200ApplicationBarPlusJSONResponse = Bar
 
 func (response Test200ApplicationBarPlusJSONResponse) VisitTestResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/bar+json")
@@ -359,7 +349,7 @@ func (response Test200ApplicationBarPlusJSONResponse) VisitTestResponse(w http.R
 	return json.NewEncoder(w).Encode(response)
 }
 
-type Test200ApplicationFooPlusJSONResponse Foo
+type Test200ApplicationFooPlusJSONResponse = Foo
 
 func (response Test200ApplicationFooPlusJSONResponse) VisitTestResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/foo+json")
@@ -368,9 +358,7 @@ func (response Test200ApplicationFooPlusJSONResponse) VisitTestResponse(w http.R
 	return json.NewEncoder(w).Encode(response)
 }
 
-type Test201ApplicationBarPlusJSONResponse struct {
-	BazApplicationBarPlusJSONResponse
-}
+type Test201ApplicationBarPlusJSONResponse = Bar
 
 func (response Test201ApplicationBarPlusJSONResponse) VisitTestResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/bar+json")
@@ -379,9 +367,7 @@ func (response Test201ApplicationBarPlusJSONResponse) VisitTestResponse(w http.R
 	return json.NewEncoder(w).Encode(response)
 }
 
-type Test201ApplicationFooPlusJSONResponse struct {
-	BazApplicationFooPlusJSONResponse
-}
+type Test201ApplicationFooPlusJSONResponse = Foo
 
 func (response Test201ApplicationFooPlusJSONResponse) VisitTestResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/foo+json")
@@ -437,10 +423,10 @@ func (sh *strictHandler) Test(ctx *gin.Context) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/8ySQU4DMQxF7/JhR9Skwy43YM8F0qnTBk1tKwkLqObuyGkFqlQW7JiNPXHeT/5Xzpjl",
-	"pMLEvSGeUampcKPxs0ufVmbhTtytTapLmVMvwn6X6tNbE7b1Nh/plKx7rJQR8eB/dP1l2ozAuroblSzy",
-	"R5UsgtU+dwWud61WtIpS7eViIBda9pN1/UMJEa3XwgcM2HTuE9u7hDGFsyDy+7I4iBInLYh43oRNgIOm",
-	"fhwqvlMbeR1oFDth2H3ZI+LVhu426imEfxy1wxS2v23+9uHtvYyg1q8AAAD//25zbQ5XAgAA",
+	"H4sIAAAAAAAC/9SSwU7DMAyG3+WHG9WalVvegDsvkKXuFrTFVuwLTH135BSBJo0DR05263yf4l+5IvNF",
+	"uFI1RbyikQpXpf5xSB9eMlejat4mkXPJyQrX8ZDa05ty9f+aT3RJ3j02WhDxMP54x22qTmBdhxvLwvxH",
+	"y8KM1TUzaW5FXIOIbv46s12+eZHGQs3KttFS6DxP3tm7ECLUWqnHzefi+8T+LuEMC9UkBRHPu7ALGCDJ",
+	"Tp0cjbSHdqRe3Np3fpkR8erD4TbvKYT/lPeAKex/o78XG/0V9bTWzwAAAP//ShuZKG0CAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
@@ -488,27 +474,20 @@ func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
 // The logic of resolving external references is tightly connected to "import-mapping" feature.
 // Externally referenced files must be embedded in the corresponding golang packages.
 // Urls can be supported but this task was out of the scope.
-func GetSwagger() (swagger *openapi3.T, err error) {
+func GetSwagger() (swagger *openapi.T, err error) {
 	resolvePath := PathToRawSpec("")
+	_ = resolvePath // TODO: Use resolvePath when ReadFromURIFunc is implemented
 
-	loader := openapi3.NewLoader()
+	loader := openapi.NewLoader()
 	loader.IsExternalRefsAllowed = true
-	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
-		pathToFile := url.String()
-		pathToFile = path.Clean(pathToFile)
-		getSpec, ok := resolvePath[pathToFile]
-		if !ok {
-			err1 := fmt.Errorf("path not found: %s", pathToFile)
-			return nil, err1
-		}
-		return getSpec()
-	}
+	// TODO: Add ReadFromURIFunc support to our abstraction layer
 	var specData []byte
 	specData, err = rawSpec()
 	if err != nil {
 		return
 	}
-	swagger, err = loader.LoadFromData(specData)
+	// Use LoadFromDataWithBasePath with current directory as base path
+	swagger, err = loader.LoadFromDataWithBasePath(specData, ".")
 	if err != nil {
 		return
 	}

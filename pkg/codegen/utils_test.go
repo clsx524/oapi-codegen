@@ -16,9 +16,10 @@ package codegen
 import (
 	"testing"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
 )
 
 func TestToCamelCase(t *testing.T) {
@@ -157,14 +158,14 @@ func TestToCamelCaseWithInitialisms(t *testing.T) {
 }
 
 func TestSortedSchemaKeysWithXOrder(t *testing.T) {
-	withOrder := func(i float64) *openapi3.SchemaRef {
-		return &openapi3.SchemaRef{
-			Value: &openapi3.Schema{
+	withOrder := func(i float64) *openapi.SchemaRef {
+		return &openapi.SchemaRef{
+			Value: &openapi.Schema{
 				Extensions: map[string]interface{}{"x-order": i},
 			},
 		}
 	}
-	dict := map[string]*openapi3.SchemaRef{
+	dict := map[string]*openapi.SchemaRef{
 		"first":            withOrder(1),
 		"minusTenth":       withOrder(-10),
 		"zero":             withOrder(0),
@@ -184,6 +185,10 @@ func TestSortedSchemaKeysWithXOrder(t *testing.T) {
 
 func TestSortedSchemaKeysWithXOrderFromParsed(t *testing.T) {
 	rawSpec := `---
+openapi: 3.0.0
+info:
+  title: Test Spec
+  version: 1.0.0
 components:
   schemas:
     AlwaysLast:
@@ -204,7 +209,7 @@ components:
           x-order: 1
   `
 
-	loader := openapi3.NewLoader()
+	loader := openapi.NewLoader()
 	spec, err := loader.LoadFromData([]byte(rawSpec))
 	require.NoError(t, err)
 	require.NotNil(t, spec.Components)
@@ -224,7 +229,7 @@ components:
 
 		expected := []string{"start", "end"}
 
-		actual := SortedSchemaKeys(schemas.Value.Properties)
+		actual := SortedSchemaKeys(schemas.Value.PropertiesToMap())
 
 		assert.EqualValues(t, expected, actual, "Keys are not sorted properly")
 	})
@@ -615,10 +620,10 @@ func TestSchemaNameToTypeName(t *testing.T) {
 
 func TestTypeDefinitionsEquivalent(t *testing.T) {
 	def1 := TypeDefinition{TypeName: "name", Schema: Schema{
-		OAPISchema: &openapi3.Schema{},
+		OAPISchema: &openapi.Schema{},
 	}}
 	def2 := TypeDefinition{TypeName: "name", Schema: Schema{
-		OAPISchema: &openapi3.Schema{},
+		OAPISchema: &openapi.Schema{},
 	}}
 	assert.True(t, TypeDefinitionsEquivalent(def1, def2))
 }

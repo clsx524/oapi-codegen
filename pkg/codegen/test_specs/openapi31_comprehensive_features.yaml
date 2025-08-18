@@ -1,0 +1,394 @@
+openapi: "3.1.0"
+info:
+  title: OpenAPI 3.1 Comprehensive Features Test
+  version: "1.0.0"
+  summary: Comprehensive test for all major OpenAPI 3.1 features and migration scenarios
+  description: |
+    This specification tests:
+    - Type arrays and union types
+    - Const values
+    - $ref with sibling properties
+    - Enhanced JSON Schema compatibility
+    - examples vs example handling
+    - contentEncoding/contentMediaType
+    - Multiple examples array
+    - IF/THEN/ELSE conditionals
+    - exclusiveMinimum/exclusiveMaximum as numbers
+    - prefixItems for arrays
+
+jsonSchemaDialect: "https://json-schema.org/draft/2020-12/schema"
+
+paths:
+  /types/union:
+    post:
+      operationId: createUnionType
+      summary: Test union types
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnionTypeTest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnionTypeTest'
+
+  /types/const:
+    get:
+      operationId: getConstType
+      summary: Test const values
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConstTest'
+
+  /schemas/ref-siblings:
+    get:
+      operationId: getRefSiblings
+      summary: Test $ref with sibling properties (3.1 feature)
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseUser'
+                title: "Extended User"
+                description: "User with additional metadata"
+                examples:
+                  - id: "usr_123"
+                    name: "John Doe"
+
+  /schemas/conditional:
+    post:
+      operationId: testConditionalSchema
+      summary: Test if/then/else conditionals
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConditionalSchema'
+      responses:
+        '200':
+          description: Success
+
+  /content/encoding:
+    post:
+      operationId: testContentEncoding
+      summary: Test contentEncoding and contentMediaType
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContentEncodingTest'
+      responses:
+        '200':
+          description: Success
+
+  /arrays/prefix-items:
+    post:
+      operationId: testPrefixItems
+      summary: Test prefixItems array validation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrefixItemsTest'
+      responses:
+        '200':
+          description: Success
+
+webhooks:
+  dataChanged:
+    post:
+      operationId: handleDataChanged
+      summary: Data changed webhook
+      description: Webhook called when data changes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookEvent'
+      responses:
+        '200':
+          description: Webhook processed
+        '400':
+          description: Invalid webhook data
+
+components:
+  schemas:
+    # Union Types Test
+    UnionTypeTest:
+      type: object
+      required:
+        - id
+        - flexibleValue
+      properties:
+        id:
+          type: ["string", "integer"]  # Union type
+          description: "ID can be string or integer"
+        name:
+          type: ["string", "null"]     # Nullable string (3.1 style)
+          description: "Name can be string or null"
+        flexibleValue:
+          type: ["string", "number", "boolean"]  # Multiple union
+          description: "Value can be string, number, or boolean"
+          examples:
+            - "text example"
+            - 42
+            - true
+        optionalData:
+          type: ["object", "array", "null"]  # Complex union with null
+          description: "Data can be object, array, or null"
+
+    # Const Values Test
+    ConstTest:
+      type: object
+      properties:
+        type:
+          const: "user"  # Single const value
+          description: "Always 'user'"
+        status:
+          const: "active"
+          description: "Always 'active'"
+        version:
+          const: 1
+          description: "Always version 1"
+        config:
+          type: object
+          properties:
+            environment:
+              const: "production"
+            debug:
+              const: false
+
+    # Base schema for $ref with siblings test
+    BaseUser:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: ["string", "integer"]
+        name:
+          type: string
+        email:
+          type: ["string", "null"]
+          format: email
+
+    # Conditional Schema (if/then/else)
+    ConditionalSchema:
+      type: object
+      required:
+        - type
+        - value
+      properties:
+        type:
+          type: string
+          enum: ["small", "medium", "large"]
+        value:
+          type: integer
+        description:
+          type: string
+      # Conditional validation based on type
+      if:
+        properties:
+          type:
+            const: "small"
+      then:
+        properties:
+          value:
+            maximum: 10
+          description:
+            const: "Small item (max 10)"
+      else:
+        if:
+          properties:
+            type:
+              const: "medium"
+        then:
+          properties:
+            value:
+              minimum: 11
+              maximum: 100
+            description:
+              const: "Medium item (11-100)"
+        else:
+          properties:
+            value:
+              minimum: 101
+            description:
+              const: "Large item (101+)"
+
+    # Content Encoding Test
+    ContentEncodingTest:
+      type: object
+      properties:
+        fileData:
+          type: string
+          contentEncoding: "base64"
+          contentMediaType: "image/png"
+          description: "Base64 encoded PNG image"
+        compressedData:
+          type: string
+          contentEncoding: "gzip"
+          contentMediaType: "application/json"
+          description: "Gzipped JSON data"
+        textData:
+          type: string
+          contentMediaType: "text/plain"
+          description: "Plain text content"
+
+    # Prefix Items Test (JSON Schema 2020-12 feature)
+    PrefixItemsTest:
+      type: array
+      prefixItems:
+        - type: string
+          description: "First item must be string"
+        - type: integer
+          description: "Second item must be integer"
+        - type: boolean
+          description: "Third item must be boolean"
+      items:
+        type: string
+        description: "Additional items must be strings"
+      minItems: 3
+
+    # Webhook Event Schema
+    WebhookEvent:
+      type: object
+      required:
+        - eventType
+        - timestamp
+        - data
+      properties:
+        eventType:
+          type: string
+          enum: ["created", "updated", "deleted"]
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: ["object", "null"]
+        metadata:
+          type: object
+          additionalProperties:
+            type: ["string", "number", "boolean", "null"]
+
+    # Enhanced Number Validation (3.1 changes exclusiveMinimum/Maximum to numbers)
+    EnhancedNumberValidation:
+      type: object
+      properties:
+        score:
+          type: number
+          minimum: 0
+          exclusiveMaximum: 100.0  # Number instead of boolean
+          description: "Score between 0 (inclusive) and 100 (exclusive)"
+        rating:
+          type: integer
+          exclusiveMinimum: 0      # Number instead of boolean
+          maximum: 5
+          description: "Rating between 0 (exclusive) and 5 (inclusive)"
+
+    # Multiple Examples Test
+    MultipleExamplesTest:
+      type: object
+      properties:
+        name:
+          type: string
+          examples:  # Array of examples (3.1 feature)
+            - "John Doe"
+            - "Jane Smith"
+            - "Alice Johnson"
+        status:
+          type: string
+          enum: ["active", "inactive", "pending"]
+          examples:
+            - "active"
+            - "pending"
+        
+    # Complex Type Array Test
+    ComplexTypeArrayTest:
+      type: object
+      properties:
+        mixedId:
+          type: ["string", "integer", "null"]
+        complexValue:
+          type: ["object", "array", "string", "number", "boolean", "null"]
+          description: "Can be any type including null"
+        restrictedMixed:
+          type: ["string", "number"]
+          minimum: 0  # Only applies when type is number
+          minLength: 1  # Only applies when type is string
+
+    # Backwards Compatibility Test
+    BackwardsCompatibilityTest:
+      type: object
+      properties:
+        # Old style nullable (should still work)
+        oldStyleNullable:
+          type: string
+          nullable: true
+        # New style nullable
+        newStyleNullable:
+          type: ["string", "null"]
+        # Old style example (should still work)
+        withExample:
+          type: string
+          example: "old style example"
+        # New style examples
+        withExamples:
+          type: string
+          examples:
+            - "new style example 1"
+            - "new style example 2"
+
+  # Path Items in components (3.1 feature)
+  pathItems:
+    UserOperations:
+      get:
+        operationId: getUserFromComponent
+        summary: Get user from reusable path item
+        parameters:
+          - name: id
+            in: path
+            required: true
+            schema:
+              type: ["string", "integer"]
+        responses:
+          '200':
+            description: User found
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/BaseUser'
+      put:
+        operationId: updateUserFromComponent
+        summary: Update user from reusable path item
+        parameters:
+          - name: id
+            in: path
+            required: true
+            schema:
+              type: ["string", "integer"]
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseUser'
+        responses:
+          '200':
+            description: User updated

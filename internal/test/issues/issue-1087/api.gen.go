@@ -30,6 +30,12 @@ type ThingList struct {
 // N404 defines model for 404.
 type N404 = externalRef0.Error
 
+// N409 defines model for 409.
+type N409 = externalRef0.Error
+
+// N410 defines model for 410.
+type N410 = externalRef0.Error
+
 // ThingResponse Object containing list of Things
 type ThingResponse = ThingList
 
@@ -199,11 +205,11 @@ type ClientWithResponsesInterface interface {
 type GetThingsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ThingResponse
-	JSON401      *externalRef0.N401
-	JSON403      *externalRef0.N403
-	JSON404      *N404
-	JSON500      *externalRef0.DefaultError
+	JSON200      *ThingList
+	JSON401      *Error
+	JSON403      *Error
+	JSON404      *externalRef0.Error
+	JSON500      *Error
 }
 
 // Status returns HTTPResponse.Status
@@ -246,35 +252,35 @@ func ParseGetThingsResponse(rsp *http.Response) (*GetThingsResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ThingResponse
+		var dest ThingList
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest externalRef0.N401
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON401 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
-		var dest externalRef0.N403
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON403 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest N404
+		var dest externalRef0.Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest externalRef0.DefaultError
+		var dest Error
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

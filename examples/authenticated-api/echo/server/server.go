@@ -1,14 +1,11 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 	"sort"
 	"sync"
 
-	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/labstack/echo/v4"
-	middleware "github.com/oapi-codegen/echo-middleware"
 	"github.com/oapi-codegen/oapi-codegen/v2/examples/authenticated-api/echo/api"
 )
 
@@ -26,19 +23,62 @@ func NewServer() *server {
 }
 
 func CreateMiddleware(v JWSValidator) ([]echo.MiddlewareFunc, error) {
-	spec, err := api.GetSwagger()
-	if err != nil {
-		return nil, fmt.Errorf("loading spec: %w", err)
+	// Create authentication middleware for libopenapi
+	authMiddleware := func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// Determine required scopes based on path and method
+			requiredScopes := getRequiredScopes(c.Request().Method, c.Request().URL.Path)
+			
+			// If no authentication is required for this endpoint, continue
+			if requiredScopes == nil {
+				return next(c)
+			}
+
+			// Extract JWT from Authorization header
+			jws, err := GetJWSFromRequest(c.Request())
+			if err != nil {
+				return echo.NewHTTPError(http.StatusForbidden, "Missing or invalid authorization header")
+			}
+
+			// Validate the JWT
+			token, err := v.ValidateJWS(jws)
+			if err != nil {
+				return echo.NewHTTPError(http.StatusForbidden, "Invalid JWT token")
+			}
+
+			// Check that token claims match required scopes
+			err = CheckTokenClaims(requiredScopes, token)
+			if err != nil {
+				return echo.NewHTTPError(http.StatusForbidden, "Insufficient permissions")
+			}
+
+			// Set the JWT claims in the context for handlers to access
+			c.Set(JWTClaimsContextKey, token)
+
+			return next(c)
+		}
 	}
 
-	validator := middleware.OapiRequestValidatorWithOptions(spec,
-		&middleware.Options{
-			Options: openapi3filter.Options{
-				AuthenticationFunc: NewAuthenticator(v),
-			},
-		})
+	return []echo.MiddlewareFunc{authMiddleware}, nil
+}
 
-	return []echo.MiddlewareFunc{validator}, nil
+// getRequiredScopes determines what scopes are required for a given path and method
+func getRequiredScopes(method, path string) []string {
+	// Based on the API spec:
+	// - GET /things requires authentication but no specific scopes (global security)
+	// - POST /things requires authentication with "things:w" scope
+	
+	if path == "/things" {
+		switch method {
+		case "GET":
+			return []string{} // Requires auth but no specific scopes
+		case "POST":
+			return []string{"things:w"} // Requires "things:w" scope
+		}
+	}
+	
+	// No authentication required for unknown paths
+	return nil
 }
 
 // Ensure that we implement the server interface
@@ -60,7 +100,7 @@ func (s *server) ListThings(ctx echo.Context) error {
 	for _, key := range thingKeys {
 		thing := s.things[key]
 		things = append(things, api.ThingWithID{
-			Id:   key,
+			ID:   key,
 			Name: thing.Name,
 		})
 	}
@@ -101,7 +141,7 @@ func (s *server) AddThing(ctx echo.Context) error {
 	s.things[s.lastID] = thing
 	thingWithId := api.ThingWithID{
 		Name: thing.Name,
-		Id:   s.lastID,
+		ID:   s.lastID,
 	}
 	s.lastID++
 

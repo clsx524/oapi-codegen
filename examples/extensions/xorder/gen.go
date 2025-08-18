@@ -11,6 +11,6 @@ type Client struct {
 
 // ClientWithExtension defines model for ClientWithExtension.
 type ClientWithExtension struct {
-	Id    *float32 `json:"id,omitempty"`
 	AName *string  `json:"a_name,omitempty"`
+	Id    *float32 `json:"id,omitempty"`
 }

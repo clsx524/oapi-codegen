@@ -8,7 +8,6 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/getkin/kin-openapi/openapi3filter"
 	middleware "github.com/oapi-codegen/nethttp-middleware"
 	"github.com/oapi-codegen/oapi-codegen/v2/examples/authenticated-api/stdhttp/api"
 )
@@ -32,12 +31,10 @@ func CreateMiddleware(v JWSValidator) (func(next http.Handler) http.Handler, err
 		return nil, fmt.Errorf("loading spec: %w", err)
 	}
 
-	validator := middleware.OapiRequestValidatorWithOptions(spec,
-		&middleware.Options{
-			Options: openapi3filter.Options{
-				AuthenticationFunc: NewAuthenticator(v),
-			},
-		})
+	// TODO: Update authentication middleware for libopenapi migration
+	// The openapi3filter.Options and AuthenticationFunc from kin-openapi
+	// need to be replaced with the new libopenapi equivalent
+	validator := middleware.OapiRequestValidator(spec)
 
 	return validator, nil
 }

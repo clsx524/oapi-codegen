@@ -13,25 +13,24 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path"
 	"strings"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/labstack/echo/v4"
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
 )
 
 // Defines values for Bar.
 const (
-	BarBar           Bar = "Bar"
-	BarEmpty         Bar = ""
-	BarFoo           Bar = "Foo"
-	BarFoo1          Bar = " Foo"
-	BarFoo2          Bar = " Foo "
-	BarFooBar        Bar = "Foo Bar"
-	BarFooBar1       Bar = "Foo-Bar"
-	BarN1            Bar = "1"
-	BarN1Foo         Bar = "1Foo"
-	BarUnderscoreFoo Bar = "_Foo_"
+	BarParam      Bar = "Bar"
+	Empty         Bar = ""
+	Foo           Bar = "Foo"
+	Foo1          Bar = " Foo"
+	Foo2          Bar = " Foo "
+	FooBar        Bar = "Foo Bar"
+	FooBar1       Bar = "Foo-Bar"
+	N1            Bar = "1"
+	N1Foo         Bar = "1Foo"
+	UnderscoreFoo Bar = "_Foo_"
 )
 
 // Bar defines model for Bar.
@@ -365,27 +364,20 @@ func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
 // The logic of resolving external references is tightly connected to "import-mapping" feature.
 // Externally referenced files must be embedded in the corresponding golang packages.
 // Urls can be supported but this task was out of the scope.
-func GetSwagger() (swagger *openapi3.T, err error) {
+func GetSwagger() (swagger *openapi.T, err error) {
 	resolvePath := PathToRawSpec("")
+	_ = resolvePath // TODO: Use resolvePath when ReadFromURIFunc is implemented
 
-	loader := openapi3.NewLoader()
+	loader := openapi.NewLoader()
 	loader.IsExternalRefsAllowed = true
-	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
-		pathToFile := url.String()
-		pathToFile = path.Clean(pathToFile)
-		getSpec, ok := resolvePath[pathToFile]
-		if !ok {
-			err1 := fmt.Errorf("path not found: %s", pathToFile)
-			return nil, err1
-		}
-		return getSpec()
-	}
+	// TODO: Add ReadFromURIFunc support to our abstraction layer
 	var specData []byte
 	specData, err = rawSpec()
 	if err != nil {
 		return
 	}
-	swagger, err = loader.LoadFromData(specData)
+	// Use LoadFromDataWithBasePath with current directory as base path
+	swagger, err = loader.LoadFromDataWithBasePath(specData, ".")
 	if err != nil {
 		return
 	}

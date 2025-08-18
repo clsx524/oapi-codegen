@@ -3,4 +3,6 @@ generate:
   models: true
   client: true
   echo-server: true
+output-options:
+  skip-prune: true
 output: openapi.gen.go

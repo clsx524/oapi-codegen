@@ -1,21 +1,27 @@
 package util
 
 import (
-	"bytes"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
 	"github.com/speakeasy-api/openapi-overlay/pkg/loader"
 	"gopkg.in/yaml.v3"
 )
 
-func LoadSwagger(filePath string) (swagger *openapi3.T, err error) {
+func LoadSwagger(filePath string) (swagger *openapi.T, err error) {
+	return LoadSwaggerWithIgnoreMissingRefs(filePath, false)
+}
 
-	loader := openapi3.NewLoader()
+func LoadSwaggerWithIgnoreMissingRefs(filePath string, ignoreMissingRefs bool) (swagger *openapi.T, err error) {
+	loader := openapi.NewLoader()
 	loader.IsExternalRefsAllowed = true
+	loader.IgnoreMissingRefs = ignoreMissingRefs
 
 	u, err := url.Parse(filePath)
 	if err == nil && u.Scheme != "" && u.Host != "" {
@@ -28,73 +34,122 @@ func LoadSwagger(filePath string) (swagger *openapi3.T, err error) {
 // Deprecated: In kin-openapi v0.126.0 (https://github.com/getkin/kin-openapi/tree/v0.126.0?tab=readme-ov-file#v01260) the Circular Reference Counter functionality was removed, instead resolving all references with backtracking, to avoid needing to provide a limit to reference counts.
 //
 // This is now identital in method as `LoadSwagger`.
-func LoadSwaggerWithCircularReferenceCount(filePath string, _ int) (swagger *openapi3.T, err error) {
+func LoadSwaggerWithCircularReferenceCount(filePath string, _ int) (swagger *openapi.T, err error) {
 	return LoadSwagger(filePath)
 }
 
 type LoadSwaggerWithOverlayOpts struct {
-	Path   string
-	Strict bool
+	Path              string
+	Strict            bool
+	IgnoreMissingRefs bool
 }
 
-func LoadSwaggerWithOverlay(filePath string, opts LoadSwaggerWithOverlayOpts) (swagger *openapi3.T, err error) {
-	spec, err := LoadSwagger(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load OpenAPI specification: %w", err)
-	}
-
+func LoadSwaggerWithOverlay(filePath string, opts LoadSwaggerWithOverlayOpts) (swagger *openapi.T, err error) {
 	if opts.Path == "" {
-		return spec, nil
+		return LoadSwagger(filePath)
 	}
 
-	// parse out the yaml.Node, which is required by the overlay library
-	data, err := yaml.Marshal(spec)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal spec from %#v as YAML: %w", filePath, err)
-	}
-
-	var node yaml.Node
-	err = yaml.NewDecoder(bytes.NewReader(data)).Decode(&node)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse spec from %#v: %w", filePath, err)
-	}
-
+	// Load the overlay
 	overlay, err := loader.LoadOverlay(opts.Path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load Overlay from %#v: %v", opts.Path, err)
+		return nil, fmt.Errorf("failed to load overlay: %w", err)
 	}
+	
 
-	err = overlay.Validate()
-	if err != nil {
-		return nil, fmt.Errorf("the Overlay in %#v was not valid: %v", opts.Path, err)
-	}
-
-	if opts.Strict {
-		err, vs := overlay.ApplyToStrict(&node)
+	// Check if filePath is a URL, if so download the content to a temporary file
+	var actualFilePath string
+	var tempFile *os.File
+	
+	u, err := url.Parse(filePath)
+	if err == nil && u.Scheme != "" && u.Host != "" {
+		// It's a URL, download the content to a temporary file
+		client := &http.Client{}
+		resp, err := client.Get(filePath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to apply Overlay %#v to specification %#v: %v\nAdditionally, the following validation errors were found:\n- %s", opts.Path, filePath, err, strings.Join(vs, "\n- "))
+			return nil, fmt.Errorf("failed to fetch spec from URL %s: %w", filePath, err)
 		}
+		defer resp.Body.Close()
+		
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("failed to fetch spec from URL %s: status %d", filePath, resp.StatusCode)
+		}
+		
+		// Create a temporary file
+		tempFile, err = os.CreateTemp("", "openapi-spec-*.json")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create temporary file: %w", err)
+		}
+		defer os.Remove(tempFile.Name()) // Clean up
+		defer tempFile.Close()
+		
+		// Copy the response to the temporary file
+		_, err = io.Copy(tempFile, resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to write spec to temporary file: %w", err)
+		}
+		
+		actualFilePath = tempFile.Name()
 	} else {
-		err = overlay.ApplyTo(&node)
+		// It's already a file path
+		actualFilePath = filePath
+	}
+
+
+	// Load the specification
+	specNode, _, err := loader.LoadEitherSpecification(actualFilePath, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load specification: %w", err)
+	}
+	
+	// Apply the overlay to the specification
+	err = overlay.ApplyTo(specNode)
+	if err != nil {
+		return nil, fmt.Errorf("failed to apply overlay: %w", err)
+	}
+	
+	overlayedNode := specNode
+
+
+	// Convert the YAML node back to bytes
+	if overlayedNode != nil {
+		// Serialize the overlayed node back to YAML bytes
+		overlayedBytes, err := yaml.Marshal(overlayedNode)
 		if err != nil {
-			return nil, fmt.Errorf("failed to apply Overlay %#v to specification %#v: %v", opts.Path, filePath, err)
+			return nil, fmt.Errorf("failed to serialize overlayed spec: %w", err)
 		}
+
+
+		// Load the overlayed spec using our normal loader with base path preservation
+		loader := openapi.NewLoader()
+		loader.IsExternalRefsAllowed = true
+		loader.IgnoreMissingRefs = opts.IgnoreMissingRefs
+
+		// Extract base path from the original file path for reference resolution
+		basePath := ""
+		
+		// Check if the original filePath was a URL
+		if u, err := url.Parse(filePath); err == nil && u.Scheme != "" && u.Host != "" {
+			// For URLs, use the URL's base path
+			u.Path = filepath.Dir(u.Path)
+			basePath = u.String()
+		} else {
+			// For file paths, extract directory path
+			if idx := strings.LastIndex(filePath, "/"); idx != -1 {
+				basePath = filePath[:idx]
+			} else if idx := strings.LastIndex(filePath, "\\"); idx != -1 {
+				basePath = filePath[:idx]
+			}
+
+			// Convert to absolute path if we have a base path
+			if basePath != "" {
+				if absBasePath, err := filepath.Abs(basePath); err == nil {
+					basePath = absBasePath
+				}
+			}
+		}
+
+		return loader.LoadFromDataWithBasePath(overlayedBytes, basePath)
 	}
 
-	b, err := yaml.Marshal(&node)
-	if err != nil {
-		return nil, fmt.Errorf("failed to serialize Overlay'd specification %#v: %v", opts.Path, err)
-	}
-
-	loader := openapi3.NewLoader()
-	loader.IsExternalRefsAllowed = true
-
-	swagger, err = loader.LoadFromDataWithPath(b, &url.URL{
-		Path: filepath.ToSlash(filePath),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to serialize Overlay'd specification %#v: %v", opts.Path, err)
-	}
-
-	return swagger, nil
+	return LoadSwagger(filePath)
 }

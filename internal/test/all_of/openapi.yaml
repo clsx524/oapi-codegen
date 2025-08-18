@@ -14,7 +14,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PersonWithID"
+                $ref: "#/components/schemas/ProductDetails"
 components:
   schemas:
     PersonProperties:
@@ -51,3 +51,32 @@ components:
               type: integer
               format: int64
           required: [ ID ]
+    ProductDetails:
+      description: |
+        Test case for allOf with additional properties in correct format.
+        This demonstrates the proper way to extend a schema with additional fields.
+      allOf:
+        - $ref: "#/components/schemas/Product"
+        - type: object
+          properties:
+            display_name:
+              type: string
+              description: Display name
+              example: "Widget Pro"
+            category:
+              type: string
+              description: Category
+              example: "Electronics"
+            status:
+              description: The status of the product
+              type: string
+              enum: ["draft", "active", "discontinued", "pending"]
+    Product:
+      type: object
+      description: Base product schema
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string

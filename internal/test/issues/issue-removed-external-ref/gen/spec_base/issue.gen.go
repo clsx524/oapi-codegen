@@ -215,7 +215,7 @@ type PostInvalidExtRefTroubleResponseObject interface {
 	VisitPostInvalidExtRefTroubleResponse(w http.ResponseWriter) error
 }
 
-type PostInvalidExtRefTrouble300JSONResponse struct{ externalRef0.Pascal }
+type PostInvalidExtRefTrouble300JSONResponse = PascalSchema
 
 func (response PostInvalidExtRefTrouble300JSONResponse) VisitPostInvalidExtRefTroubleResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")

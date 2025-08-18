@@ -21,9 +21,6 @@ type Example struct {
 	Value *string `json:"value,omitempty"`
 }
 
-// Reusableresponse defines model for reusableresponse.
-type Reusableresponse = Example
-
 // MultipleRequestAndResponseTypesTextBody defines parameters for MultipleRequestAndResponseTypes.
 type MultipleRequestAndResponseTypesTextBody = string
 
@@ -1128,7 +1125,7 @@ func (r ReservedGoKeywordParametersResponse) StatusCode() int {
 type ReusableResponsesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *Reusableresponse
+	JSON200      *Example
 }
 
 // Status returns HTTPResponse.Status
@@ -1577,7 +1574,7 @@ func ParseReusableResponsesResponse(rsp *http.Response) (*ReusableResponsesRespo
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Reusableresponse
+		var dest Example
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

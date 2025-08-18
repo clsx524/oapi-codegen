@@ -18,6 +18,11 @@ type ClientType struct {
 	Name string `json:"name"`
 }
 
+// Unreferenced defines model for Unreferenced.
+type Unreferenced struct {
+	Id int `json:"id"`
+}
+
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
 

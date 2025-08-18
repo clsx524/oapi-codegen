@@ -21,12 +21,12 @@ import (
 	"fmt"
 	"text/template"
 
-	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
 )
 
 // GenerateInlinedSpec generates a gzipped, base64 encoded JSON representation of the
 // swagger definition, which we embed inside the generated code.
-func GenerateInlinedSpec(t *template.Template, importMapping importMap, swagger *openapi3.T) (string, error) {
+func GenerateInlinedSpec(t *template.Template, importMapping importMap, swagger *openapi.T) (string, error) {
 	// ensure that any external file references are embedded into the embedded spec
 	swagger.InternalizeRefs(context.Background(), nil)
 	// Marshal to json

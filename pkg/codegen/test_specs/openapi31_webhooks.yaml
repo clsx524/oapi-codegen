@@ -1,0 +1,93 @@
+openapi: "3.1.0"
+info:
+  title: OpenAPI 3.1 Webhooks Test
+  version: "1.0.0"
+  summary: Test specification for OpenAPI 3.1 webhook features
+
+# Note: paths is optional in OpenAPI 3.1 when webhooks are present
+webhooks:
+  userCreated:
+    post:
+      operationId: handleUserCreated
+      summary: User Created Webhook
+      description: Called when a new user is created
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreatedEvent'
+      responses:
+        '200':
+          description: Webhook received successfully
+        '400':
+          description: Invalid webhook payload
+
+  orderStatusChanged:
+    post:
+      operationId: handleOrderStatusChanged
+      summary: Order Status Changed Webhook
+      description: Called when an order status changes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderStatusEvent'
+      responses:
+        '200':
+          description: Webhook received successfully
+
+components:
+  schemas:
+    UserCreatedEvent:
+      type: object
+      required:
+        - eventType
+        - timestamp
+        - user
+      properties:
+        eventType:
+          const: "user.created"
+        timestamp:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/User'
+          
+    OrderStatusEvent:
+      type: object
+      required:
+        - eventType
+        - timestamp
+        - orderId
+        - newStatus
+      properties:
+        eventType:
+          const: "order.status_changed"
+        timestamp:
+          type: string
+          format: date-time
+        orderId:
+          type: ["string", "integer"]
+        newStatus:
+          type: string
+          enum: ["pending", "processing", "shipped", "delivered", "cancelled"]
+        previousStatus:
+          type: ["string", "null"]
+          
+    User:
+      type: object
+      required:
+        - id
+        - email
+      properties:
+        id:
+          type: ["string", "integer"]
+        email:
+          type: string
+          format: email
+        name:
+          type: ["string", "null"]
+        metadata:
+          type: ["object", "null"]

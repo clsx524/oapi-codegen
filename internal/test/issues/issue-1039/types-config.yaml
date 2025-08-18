@@ -4,4 +4,5 @@ generate:
   models: true
 output-options:
   nullable-type: true
+  skip-prune: true
 output: types.gen.go

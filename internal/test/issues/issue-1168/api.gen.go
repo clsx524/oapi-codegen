@@ -27,12 +27,6 @@ type ProblemDetails struct {
 	AdditionalProperties map[string]interface{} `json:"-"`
 }
 
-// Misc400Error defines model for Misc400Error.
-type Misc400Error = ProblemDetails
-
-// Misc404Error defines model for Misc404Error.
-type Misc404Error = ProblemDetails
-
 // Getter for additional properties for ProblemDetails. Returns the specified
 // element and whether it was found
 func (a ProblemDetails) Get(fieldName string) (value interface{}, found bool) {

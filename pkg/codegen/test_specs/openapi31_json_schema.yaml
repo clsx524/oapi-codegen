@@ -1,0 +1,105 @@
+openapi: "3.1.0"
+info:
+  title: OpenAPI 3.1 JSON Schema Compatibility Test
+  version: "1.0.0"
+  summary: Test specification for OpenAPI 3.1 JSON Schema features
+
+jsonSchemaDialect: "https://json-schema.org/draft/2020-12/schema"
+
+paths:
+  /documents:
+    post:
+      operationId: createDocument
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Document'
+      responses:
+        '201':
+          description: Document created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+
+components:
+  schemas:
+    Document:
+      type: object
+      required:
+        - title
+        - content
+      properties:
+        id:
+          type: ["string", "integer"]
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        content:
+          # Using $ref with sibling keywords (allowed in 3.1)
+          $ref: '#/components/schemas/Content'
+          description: "The document content"
+          examples:
+            - type: "text"
+              data: "Hello World"
+        tags:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+        metadata:
+          type: object
+          additionalProperties:
+            type: ["string", "number", "boolean", "null"]
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attachment'
+          
+    Content:
+      type: object
+      required:
+        - type
+        - data
+      properties:
+        type:
+          type: string
+          enum: ["text", "html", "markdown"]
+        data:
+          type: string
+        encoding:
+          type: ["string", "null"]
+          default: "utf-8"
+          
+    Attachment:
+      type: object
+      required:
+        - name
+        - contentType
+      properties:
+        name:
+          type: string
+        contentType:
+          type: string
+          pattern: "^[a-zA-Z0-9][a-zA-Z0-9!#$&\\-\\^_]*\/[a-zA-Z0-9][a-zA-Z0-9!#$&\\-\\^_.]*$"
+        size:
+          type: ["integer", "null"]
+          minimum: 0
+        url:
+          type: ["string", "null"]
+          format: uri
+          
+    # Example using const for single values
+    DocumentStatus:
+      const: "published"
+      
+    # Example with multiple examples (3.1 feature)
+    Priority:
+      type: string
+      enum: ["low", "medium", "high", "critical"]
+      examples:
+        - "medium"
+        - "high"

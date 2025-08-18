@@ -1,6 +1,6 @@
 package codegen
 
-import "github.com/getkin/kin-openapi/openapi3"
+import "github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
 
 func sliceToMap(items []string) map[string]bool {
 	m := make(map[string]bool, len(items))
@@ -10,7 +10,7 @@ func sliceToMap(items []string) map[string]bool {
 	return m
 }
 
-func filterOperationsByTag(swagger *openapi3.T, opts Configuration) {
+func filterOperationsByTag(swagger *openapi.T, opts Configuration) {
 	if len(opts.OutputOptions.ExcludeTags) > 0 {
 		operationsWithTags(swagger.Paths, sliceToMap(opts.OutputOptions.ExcludeTags), true)
 	}
@@ -19,7 +19,7 @@ func filterOperationsByTag(swagger *openapi3.T, opts Configuration) {
 	}
 }
 
-func operationsWithTags(paths *openapi3.Paths, tags map[string]bool, exclude bool) {
+func operationsWithTags(paths *openapi.Paths, tags map[string]bool, exclude bool) {
 	if paths == nil {
 		return
 	}
@@ -39,7 +39,7 @@ func operationsWithTags(paths *openapi3.Paths, tags map[string]bool, exclude boo
 }
 
 // operationHasTag returns true if the operation is tagged with any of tags
-func operationHasTag(op *openapi3.Operation, tags map[string]bool) bool {
+func operationHasTag(op *openapi.Operation, tags map[string]bool) bool {
 	if op == nil {
 		return false
 	}
@@ -51,7 +51,7 @@ func operationHasTag(op *openapi3.Operation, tags map[string]bool) bool {
 	return false
 }
 
-func filterOperationsByOperationID(swagger *openapi3.T, opts Configuration) {
+func filterOperationsByOperationID(swagger *openapi.T, opts Configuration) {
 	if len(opts.OutputOptions.ExcludeOperationIDs) > 0 {
 		operationsWithOperationIDs(swagger.Paths, sliceToMap(opts.OutputOptions.ExcludeOperationIDs), true)
 	}
@@ -60,7 +60,7 @@ func filterOperationsByOperationID(swagger *openapi3.T, opts Configuration) {
 	}
 }
 
-func operationsWithOperationIDs(paths *openapi3.Paths, operationIDs map[string]bool, exclude bool) {
+func operationsWithOperationIDs(paths *openapi.Paths, operationIDs map[string]bool, exclude bool) {
 	if paths == nil {
 		return
 	}
@@ -80,9 +80,9 @@ func operationsWithOperationIDs(paths *openapi3.Paths, operationIDs map[string]b
 }
 
 // operationHasOperationID returns true if the operation has operation id is included in operation ids
-func operationHasOperationID(op *openapi3.Operation, operationIDs map[string]bool) bool {
+func operationHasOperationID(op *openapi.Operation, operationIDs map[string]bool) bool {
 	if op == nil {
 		return false
 	}
-	return operationIDs[op.OperationID]
+	return operationIDs[op.OperationId]
 }

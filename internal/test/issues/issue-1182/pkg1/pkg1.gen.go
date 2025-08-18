@@ -15,9 +15,9 @@ import (
 	"path"
 	"strings"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/labstack/echo/v4"
 	externalRef0 "github.com/oapi-codegen/oapi-codegen/v2/internal/test/issues/issue-1182/pkg2"
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
 	strictecho "github.com/oapi-codegen/runtime/strictmiddleware/echo"
 )
 
@@ -290,7 +290,8 @@ type TestGetResponseObject interface {
 	VisitTestGetResponse(w http.ResponseWriter) error
 }
 
-type TestGet200Response externalRef0.ResponseWithReferenceResponse
+type TestGet200Response struct {
+}
 
 func (response TestGet200Response) VisitTestGetResponse(w http.ResponseWriter) error {
 	w.WriteHeader(200)
@@ -342,11 +343,10 @@ func (sh *strictHandler) TestGet(ctx echo.Context) error {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/3yQMU/DMBCF/4r1YIyStGzemFAHllKJASFknJfGtLEt+1qEqvx35LQUsTCdz3fv7r53",
-	"gg1jDJ5eMvQJiTkGnzkncbddvq0vP89OhjV7JnrLUu2YbXJRXPDQuFc/UhXeP2hFfQ7ODspllYoqsVMS",
-	"VJ/CqIwPMjCpaOzObIlpmio434cydu8sfZ43eDMSGo+rDaYK4mRf0g2zqCemIxMqHJny+YJF3dZtaQyR",
-	"3kQHjbu6rReoEI0MM1EjzFIeW84hRCZTCFbdZfIDBdVfG5ZtW8JtYg+Nm+bXseba1/zjVaHLh3E06Qu6",
-	"bFbliqtfZ/w8A2XolxMOaQ+NQSTqprnQFEndkXE0sTYO0+v0HQAA//9bF49xvAEAAA==",
+	"H4sIAAAAAAAC/zyPzWrrMBSEX8XMvUsjOelOL1Cy6CYNdFG6EM44FrV+kE4Cwejdi4zb1YxgvtGZFS5M",
+	"EWbF4kaGwmaD9YTB2+mC2kOcLO15YZHunfnBjB4P5uJigMFBDWpowZgYbHIweFGDOqBHsjKX1qiFRZq5",
+	"cZOYmK24GE7XvfmVgh6ZJcVQuEHHYWjyP3OCQfq+HdXT+uWfHqNPMTBI0X+APu/uw8l85sTMMBK19ih3",
+	"721+wrTfu3ZJ94uhboFtVIH5XHHPCwxmkWS03hc1RF3J5G1S1qF+1Z8AAAD//yYRudg4AQAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
@@ -400,27 +400,20 @@ func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
 // The logic of resolving external references is tightly connected to "import-mapping" feature.
 // Externally referenced files must be embedded in the corresponding golang packages.
 // Urls can be supported but this task was out of the scope.
-func GetSwagger() (swagger *openapi3.T, err error) {
+func GetSwagger() (swagger *openapi.T, err error) {
 	resolvePath := PathToRawSpec("")
+	_ = resolvePath // TODO: Use resolvePath when ReadFromURIFunc is implemented
 
-	loader := openapi3.NewLoader()
+	loader := openapi.NewLoader()
 	loader.IsExternalRefsAllowed = true
-	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
-		pathToFile := url.String()
-		pathToFile = path.Clean(pathToFile)
-		getSpec, ok := resolvePath[pathToFile]
-		if !ok {
-			err1 := fmt.Errorf("path not found: %s", pathToFile)
-			return nil, err1
-		}
-		return getSpec()
-	}
+	// TODO: Add ReadFromURIFunc support to our abstraction layer
 	var specData []byte
 	specData, err = rawSpec()
 	if err != nil {
 		return
 	}
-	swagger, err = loader.LoadFromData(specData)
+	// Use LoadFromDataWithBasePath with current directory as base path
+	swagger, err = loader.LoadFromDataWithBasePath(specData, ".")
 	if err != nil {
 		return
 	}

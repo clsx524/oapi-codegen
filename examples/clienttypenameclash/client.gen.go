@@ -126,7 +126,7 @@ func NewUpdateClientRequest(server string) (*http.Request, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("PUT", queryURL.String(), nil)
+	req, err := http.NewRequest("put", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}

@@ -75,19 +75,13 @@ type Resource struct {
 	Value float32 `json:"value"`
 }
 
-// SomeObject defines model for some_object.
-type SomeObject struct {
-	Name string `json:"name"`
+// ThisShouldBePruned defines model for ThisShouldBePruned.
+type ThisShouldBePruned struct {
+	Name *string `json:"name,omitempty"`
 }
 
-// Argument defines model for argument.
-type Argument = string
-
-// ResponseWithReference defines model for ResponseWithReference.
-type ResponseWithReference = SomeObject
-
-// SimpleResponse defines model for SimpleResponse.
-type SimpleResponse struct {
+// SomeObject defines model for some_object.
+type SomeObject struct {
 	Name string `json:"name"`
 }
 
@@ -140,7 +134,7 @@ type ServerInterface interface {
 	GetWithArgs(w http.ResponseWriter, r *http.Request, params GetWithArgsParams)
 	// Getter with referenced parameter and referenced response
 	// (GET /get-with-references/{global_argument}/{argument})
-	GetWithReferences(w http.ResponseWriter, r *http.Request, globalArgument int64, argument Argument)
+	GetWithReferences(w http.ResponseWriter, r *http.Request, globalArgument int64, argument string)
 	// Get an object by ID
 	// (GET /get-with-type/{content_type})
 	GetWithContentType(w http.ResponseWriter, r *http.Request, contentType GetWithContentTypeParamsContentType)
@@ -149,7 +143,7 @@ type ServerInterface interface {
 	GetReservedKeyword(w http.ResponseWriter, r *http.Request)
 	// Create a resource
 	// (POST /resource/{argument})
-	CreateResource(w http.ResponseWriter, r *http.Request, argument Argument)
+	CreateResource(w http.ResponseWriter, r *http.Request, argument string)
 	// Create a resource with inline parameter
 	// (POST /resource2/{inline_argument})
 	CreateResource2(w http.ResponseWriter, r *http.Request, inlineArgument int, params CreateResource2Params)
@@ -186,7 +180,7 @@ func (_ Unimplemented) GetWithArgs(w http.ResponseWriter, r *http.Request, param
 
 // Getter with referenced parameter and referenced response
 // (GET /get-with-references/{global_argument}/{argument})
-func (_ Unimplemented) GetWithReferences(w http.ResponseWriter, r *http.Request, globalArgument int64, argument Argument) {
+func (_ Unimplemented) GetWithReferences(w http.ResponseWriter, r *http.Request, globalArgument int64, argument string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -204,7 +198,7 @@ func (_ Unimplemented) GetReservedKeyword(w http.ResponseWriter, r *http.Request
 
 // Create a resource
 // (POST /resource/{argument})
-func (_ Unimplemented) CreateResource(w http.ResponseWriter, r *http.Request, argument Argument) {
+func (_ Unimplemented) CreateResource(w http.ResponseWriter, r *http.Request, argument string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -342,7 +336,7 @@ func (siw *ServerInterfaceWrapper) GetWithReferences(w http.ResponseWriter, r *h
 	}
 
 	// ------------- Path parameter "argument" -------------
-	var argument Argument
+	var argument string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "argument", chi.URLParam(r, "argument"), &argument, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -406,7 +400,7 @@ func (siw *ServerInterfaceWrapper) CreateResource(w http.ResponseWriter, r *http
 	var err error
 
 	// ------------- Path parameter "argument" -------------
-	var argument Argument
+	var argument string
 
 	err = runtime.BindStyledParameterWithOptions("simple", "argument", chi.URLParam(r, "argument"), &argument, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {

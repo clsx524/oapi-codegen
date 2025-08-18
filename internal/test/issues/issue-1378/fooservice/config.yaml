@@ -5,6 +5,8 @@ generate:
   embedded-spec: true
   strict-server: true
   models: true
+output-options:
+  skip-prune: true
 import-mapping:
   common.yaml: github.com/oapi-codegen/oapi-codegen/v2/internal/test/issues/issue-1378/common
   bionicle.yaml: github.com/oapi-codegen/oapi-codegen/v2/internal/test/issues/issue-1378/bionicle

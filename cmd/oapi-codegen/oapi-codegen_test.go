@@ -10,17 +10,18 @@ func TestLoader(t *testing.T) {
 
 	paths := []string{
 		"../../examples/petstore-expanded/petstore-expanded.yaml",
-		"https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/v2.4.1/examples/petstore-expanded/petstore-expanded.yaml",
+		"https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/main/examples/petstore-expanded/petstore-expanded.yaml",
 	}
 
 	for _, v := range paths {
-
+		t.Logf("Testing path: %s", v)
 		swagger, err := util.LoadSwagger(v)
 		if err != nil {
-			t.Error(err)
+			t.Errorf("Error loading %s: %v", v, err)
+			continue
 		}
 		if swagger == nil || swagger.Info == nil || swagger.Info.Version == "" {
-			t.Error("missing data")
+			t.Errorf("Missing data for path: %s", v)
 		}
 	}
 }

@@ -13,7 +13,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	middleware "github.com/oapi-codegen/fiber-middleware"
 	"github.com/oapi-codegen/oapi-codegen/v2/examples/petstore-expanded/fiber/api"
 )
 
@@ -47,7 +46,8 @@ func NewFiberPetServer(petStore *api.PetStore) *fiber.App {
 
 	// Use our validation middleware to check all requests against the
 	// OpenAPI schema.
-	app.Use(middleware.OapiRequestValidator(swagger))
+	// TODO: Re-enable when middleware supports openapi.T instead of openapi3.T
+	// app.Use(middleware.OapiRequestValidator(swagger))
 
 	// We now register our petStore above as the handler for the interface
 	api.RegisterHandlers(app, petStore)

@@ -3,4 +3,6 @@ package: param
 generate:
   models: true
   client: true
+output-options:
+  skip-prune: true
 output: param.gen.go

@@ -13,7 +13,6 @@ import (
 	"os"
 
 	"github.com/go-chi/chi/v5"
-	middleware "github.com/oapi-codegen/nethttp-middleware"
 	"github.com/oapi-codegen/oapi-codegen/v2/examples/petstore-expanded/chi/api"
 )
 
@@ -39,7 +38,8 @@ func main() {
 
 	// Use our validation middleware to check all requests against the
 	// OpenAPI schema.
-	r.Use(middleware.OapiRequestValidator(swagger))
+	// TODO: Re-enable when middleware supports openapi.T instead of openapi3.T
+	// r.Use(middleware.OapiRequestValidator(swagger))
 
 	// We now register our petStore above as the handler for the interface
 	api.HandlerFromMux(petStore, r)

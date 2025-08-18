@@ -2,6 +2,7 @@ package codegen
 
 import (
 	"fmt"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -29,12 +30,59 @@ const (
 	extOapiCodegenOnlyHonourGoName = "x-oapi-codegen-only-honour-go-name"
 )
 
-func extString(extPropValue interface{}) (string, error) {
-	str, ok := extPropValue.(string)
-	if !ok {
-		return "", fmt.Errorf("failed to convert type: %T", extPropValue)
+// Helper function to decode YAML nodes to Go values
+func decodeYamlNode(node interface{}, target interface{}) error {
+	if yamlNode, ok := node.(*yaml.Node); ok {
+		return yamlNode.Decode(target)
 	}
-	return str, nil
+	// If it's not a YAML node, try direct assignment
+	switch t := target.(type) {
+	case *string:
+		if s, ok := node.(string); ok {
+			*t = s
+			return nil
+		}
+	case *bool:
+		if b, ok := node.(bool); ok {
+			*t = b
+			return nil
+		}
+	case *[]string:
+		if slice, ok := node.([]interface{}); ok {
+			result := make([]string, len(slice))
+			for i, v := range slice {
+				if s, ok := v.(string); ok {
+					result[i] = s
+				} else {
+					return fmt.Errorf("failed to convert slice element to string: %T", v)
+				}
+			}
+			*t = result
+			return nil
+		}
+	case *map[string]string:
+		if m, ok := node.(map[string]interface{}); ok {
+			result := make(map[string]string, len(m))
+			for k, v := range m {
+				if s, ok := v.(string); ok {
+					result[k] = s
+				} else {
+					return fmt.Errorf("failed to convert map value to string: %T", v)
+				}
+			}
+			*t = result
+			return nil
+		}
+	}
+	return fmt.Errorf("unsupported type conversion from %T to %T", node, target)
+}
+
+func extString(extPropValue interface{}) (string, error) {
+	var result string
+	if err := decodeYamlNode(extPropValue, &result); err != nil {
+		return "", err
+	}
+	return result, nil
 }
 
 func extTypeName(extPropValue interface{}) (string, error) {
@@ -42,11 +90,11 @@ func extTypeName(extPropValue interface{}) (string, error) {
 }
 
 func extParsePropGoTypeSkipOptionalPointer(extPropValue interface{}) (bool, error) {
-	goTypeSkipOptionalPointer, ok := extPropValue.(bool)
-	if !ok {
-		return false, fmt.Errorf("failed to convert type: %T", extPropValue)
+	var result bool
+	if err := decodeYamlNode(extPropValue, &result); err != nil {
+		return false, err
 	}
-	return goTypeSkipOptionalPointer, nil
+	return result, nil
 }
 
 func extParseGoFieldName(extPropValue interface{}) (string, error) {
@@ -54,59 +102,43 @@ func extParseGoFieldName(extPropValue interface{}) (string, error) {
 }
 
 func extParseOmitEmpty(extPropValue interface{}) (bool, error) {
-	omitEmpty, ok := extPropValue.(bool)
-	if !ok {
-		return false, fmt.Errorf("failed to convert type: %T", extPropValue)
+	var result bool
+	if err := decodeYamlNode(extPropValue, &result); err != nil {
+		return false, err
 	}
-	return omitEmpty, nil
+	return result, nil
 }
 
 func extParseOmitZero(extPropValue interface{}) (bool, error) {
-	omitZero, ok := extPropValue.(bool)
-	if !ok {
-		return false, fmt.Errorf("failed to convert type: %T", extPropValue)
+	var result bool
+	if err := decodeYamlNode(extPropValue, &result); err != nil {
+		return false, err
 	}
-	return omitZero, nil
+	return result, nil
 }
 
 func extExtraTags(extPropValue interface{}) (map[string]string, error) {
-	tagsI, ok := extPropValue.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("failed to convert type: %T", extPropValue)
+	var result map[string]string
+	if err := decodeYamlNode(extPropValue, &result); err != nil {
+		return nil, err
 	}
-	tags := make(map[string]string, len(tagsI))
-	for k, v := range tagsI {
-		vs, ok := v.(string)
-		if !ok {
-			return nil, fmt.Errorf("failed to convert type: %T", v)
-		}
-		tags[k] = vs
-	}
-	return tags, nil
+	return result, nil
 }
 
 func extParseGoJsonIgnore(extPropValue interface{}) (bool, error) {
-	goJsonIgnore, ok := extPropValue.(bool)
-	if !ok {
-		return false, fmt.Errorf("failed to convert type: %T", extPropValue)
+	var result bool
+	if err := decodeYamlNode(extPropValue, &result); err != nil {
+		return false, err
 	}
-	return goJsonIgnore, nil
+	return result, nil
 }
 
 func extParseEnumVarNames(extPropValue interface{}) ([]string, error) {
-	namesI, ok := extPropValue.([]interface{})
-	if !ok {
-		return nil, fmt.Errorf("failed to convert type: %T", extPropValue)
+	var result []string
+	if err := decodeYamlNode(extPropValue, &result); err != nil {
+		return nil, err
 	}
-	names := make([]string, len(namesI))
-	for i, v := range namesI {
-		vs, ok := v.(string)
-		if !ok {
-			return nil, fmt.Errorf("failed to convert type: %T", v)
-		}
-		names[i] = vs
-	}
-	return names, nil
+	return result, nil
 }
 
 func extParseDeprecationReason(extPropValue interface{}) (string, error) {
@@ -114,9 +146,9 @@ func extParseDeprecationReason(extPropValue interface{}) (string, error) {
 }
 
 func extParseOapiCodegenOnlyHonourGoName(extPropValue interface{}) (bool, error) {
-	onlyHonourGoName, ok := extPropValue.(bool)
-	if !ok {
-		return false, fmt.Errorf("failed to convert type: %T", extPropValue)
+	var result bool
+	if err := decodeYamlNode(extPropValue, &result); err != nil {
+		return false, err
 	}
-	return onlyHonourGoName, nil
+	return result, nil
 }

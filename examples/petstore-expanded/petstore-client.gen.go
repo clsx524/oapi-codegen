@@ -16,15 +16,6 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
-// Error defines model for Error.
-type Error struct {
-	// Code Error code
-	Code int32 `json:"code"`
-
-	// Message Error message
-	Message string `json:"message"`
-}
-
 // NewPet defines model for NewPet.
 type NewPet struct {
 	// Name Name of the pet
@@ -36,10 +27,12 @@ type NewPet struct {
 
 // Pet defines model for Pet.
 type Pet struct {
-	// Id Unique id of the pet
-	Id int64 `json:"id"`
-
 	// Name Name of the pet
+	// ID Unique id of the pet
+
+	// ID Unique id of the pet
+	ID int64 `json:"id"`
+
 	Name string `json:"name"`
 
 	// Tag Type of the pet
@@ -263,7 +256,7 @@ func NewFindPetsRequest(server string, params *FindPetsParams) (*http.Request, e
 		queryURL.RawQuery = queryValues.Encode()
 	}
 
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	req, err := http.NewRequest("get", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +294,7 @@ func NewAddPetRequestWithBody(server string, contentType string, body io.Reader)
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", queryURL.String(), body)
+	req, err := http.NewRequest("post", queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -337,7 +330,7 @@ func NewDeletePetRequest(server string, id int64) (*http.Request, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	req, err := http.NewRequest("delete", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -371,7 +364,7 @@ func NewFindPetByIDRequest(server string, id int64) (*http.Request, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	req, err := http.NewRequest("get", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -441,7 +434,6 @@ type FindPetsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *[]Pet
-	JSONDefault  *Error
 }
 
 // Status returns HTTPResponse.Status
@@ -464,7 +456,6 @@ type AddPetResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *Pet
-	JSONDefault  *Error
 }
 
 // Status returns HTTPResponse.Status
@@ -486,7 +477,6 @@ func (r AddPetResponse) StatusCode() int {
 type DeletePetResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSONDefault  *Error
 }
 
 // Status returns HTTPResponse.Status
@@ -509,7 +499,6 @@ type FindPetByIDResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *Pet
-	JSONDefault  *Error
 }
 
 // Status returns HTTPResponse.Status
@@ -593,13 +582,6 @@ func ParseFindPetsResponse(rsp *http.Response) (*FindPetsResponse, error) {
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest Error
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSONDefault = &dest
-
 	}
 
 	return response, nil
@@ -626,13 +608,6 @@ func ParseAddPetResponse(rsp *http.Response) (*AddPetResponse, error) {
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest Error
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSONDefault = &dest
-
 	}
 
 	return response, nil
@@ -649,16 +624,6 @@ func ParseDeletePetResponse(rsp *http.Response) (*DeletePetResponse, error) {
 	response := &DeletePetResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest Error
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSONDefault = &dest
-
 	}
 
 	return response, nil
@@ -684,13 +649,6 @@ func ParseFindPetByIDResponse(rsp *http.Response) (*FindPetByIDResponse, error) 
 			return nil, err
 		}
 		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest Error
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSONDefault = &dest
 
 	}
 

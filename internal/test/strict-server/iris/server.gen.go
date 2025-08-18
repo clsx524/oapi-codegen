@@ -14,12 +14,10 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
-	"net/url"
-	"path"
 	"strings"
 
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/kataras/iris/v12"
+	"github.com/oapi-codegen/oapi-codegen/v2/pkg/openapi"
 	"github.com/oapi-codegen/runtime"
 	strictiris "github.com/oapi-codegen/runtime/strictmiddleware/iris"
 )
@@ -250,19 +248,6 @@ func RegisterHandlersWithOptions(router *iris.Application, si ServerInterface, o
 	router.Build()
 }
 
-type BadrequestResponse struct {
-}
-
-type ReusableresponseResponseHeaders struct {
-	Header1 string
-	Header2 int
-}
-type ReusableresponseJSONResponse struct {
-	Body Example
-
-	Headers ReusableresponseResponseHeaders
-}
-
 type JSONExampleRequestObject struct {
 	Body *JSONExampleJSONRequestBody
 }
@@ -271,7 +256,7 @@ type JSONExampleResponseObject interface {
 	VisitJSONExampleResponse(ctx iris.Context) error
 }
 
-type JSONExample200JSONResponse Example
+type JSONExample200JSONResponse = Example
 
 func (response JSONExample200JSONResponse) VisitJSONExampleResponse(ctx iris.Context) error {
 	ctx.ResponseWriter().Header().Set("Content-Type", "application/json")
@@ -280,19 +265,11 @@ func (response JSONExample200JSONResponse) VisitJSONExampleResponse(ctx iris.Con
 	return ctx.JSON(&response)
 }
 
-type JSONExample400Response = BadrequestResponse
+type JSONExample400Response struct {
+}
 
 func (response JSONExample400Response) VisitJSONExampleResponse(ctx iris.Context) error {
 	ctx.StatusCode(400)
-	return nil
-}
-
-type JSONExampledefaultResponse struct {
-	StatusCode int
-}
-
-func (response JSONExampledefaultResponse) VisitJSONExampleResponse(ctx iris.Context) error {
-	ctx.StatusCode(response.StatusCode)
 	return nil
 }
 
@@ -315,19 +292,11 @@ func (response MultipartExample200MultipartResponse) VisitMultipartExampleRespon
 	return response(writer)
 }
 
-type MultipartExample400Response = BadrequestResponse
+type MultipartExample400Response struct {
+}
 
 func (response MultipartExample400Response) VisitMultipartExampleResponse(ctx iris.Context) error {
 	ctx.StatusCode(400)
-	return nil
-}
-
-type MultipartExampledefaultResponse struct {
-	StatusCode int
-}
-
-func (response MultipartExampledefaultResponse) VisitMultipartExampleResponse(ctx iris.Context) error {
-	ctx.StatusCode(response.StatusCode)
 	return nil
 }
 
@@ -350,19 +319,11 @@ func (response MultipartRelatedExample200MultipartResponse) VisitMultipartRelate
 	return response(writer)
 }
 
-type MultipartRelatedExample400Response = BadrequestResponse
+type MultipartRelatedExample400Response struct {
+}
 
 func (response MultipartRelatedExample400Response) VisitMultipartRelatedExampleResponse(ctx iris.Context) error {
 	ctx.StatusCode(400)
-	return nil
-}
-
-type MultipartRelatedExampledefaultResponse struct {
-	StatusCode int
-}
-
-func (response MultipartRelatedExampledefaultResponse) VisitMultipartRelatedExampleResponse(ctx iris.Context) error {
-	ctx.StatusCode(response.StatusCode)
 	return nil
 }
 
@@ -378,7 +339,7 @@ type MultipleRequestAndResponseTypesResponseObject interface {
 	VisitMultipleRequestAndResponseTypesResponse(ctx iris.Context) error
 }
 
-type MultipleRequestAndResponseTypes200JSONResponse Example
+type MultipleRequestAndResponseTypes200JSONResponse = Example
 
 func (response MultipleRequestAndResponseTypes200JSONResponse) VisitMultipleRequestAndResponseTypesResponse(ctx iris.Context) error {
 	ctx.ResponseWriter().Header().Set("Content-Type", "application/json")
@@ -387,7 +348,7 @@ func (response MultipleRequestAndResponseTypes200JSONResponse) VisitMultipleRequ
 	return ctx.JSON(&response)
 }
 
-type MultipleRequestAndResponseTypes200FormdataResponse Example
+type MultipleRequestAndResponseTypes200FormdataResponse = Example
 
 func (response MultipleRequestAndResponseTypes200FormdataResponse) VisitMultipleRequestAndResponseTypesResponse(ctx iris.Context) error {
 	ctx.ResponseWriter().Header().Set("Content-Type", "application/x-www-form-urlencoded")
@@ -441,7 +402,8 @@ func (response MultipleRequestAndResponseTypes200TextResponse) VisitMultipleRequ
 	return err
 }
 
-type MultipleRequestAndResponseTypes400Response = BadrequestResponse
+type MultipleRequestAndResponseTypes400Response struct {
+}
 
 func (response MultipleRequestAndResponseTypes400Response) VisitMultipleRequestAndResponseTypesResponse(ctx iris.Context) error {
 	ctx.StatusCode(400)
@@ -474,7 +436,15 @@ type ReusableResponsesResponseObject interface {
 	VisitReusableResponsesResponse(ctx iris.Context) error
 }
 
-type ReusableResponses200JSONResponse struct{ ReusableresponseJSONResponse }
+type ReusableResponses200ResponseHeaders struct {
+	Header1 string
+	Header2 int
+}
+
+type ReusableResponses200JSONResponse struct {
+	Body    Example
+	Headers ReusableResponses200ResponseHeaders
+}
 
 func (response ReusableResponses200JSONResponse) VisitReusableResponsesResponse(ctx iris.Context) error {
 	ctx.ResponseWriter().Header().Set("header1", fmt.Sprint(response.Headers.Header1))
@@ -485,19 +455,11 @@ func (response ReusableResponses200JSONResponse) VisitReusableResponsesResponse(
 	return ctx.JSON(&response.Body)
 }
 
-type ReusableResponses400Response = BadrequestResponse
+type ReusableResponses400Response struct {
+}
 
 func (response ReusableResponses400Response) VisitReusableResponsesResponse(ctx iris.Context) error {
 	ctx.StatusCode(400)
-	return nil
-}
-
-type ReusableResponsesdefaultResponse struct {
-	StatusCode int
-}
-
-func (response ReusableResponsesdefaultResponse) VisitReusableResponsesResponse(ctx iris.Context) error {
-	ctx.StatusCode(response.StatusCode)
 	return nil
 }
 
@@ -519,19 +481,11 @@ func (response TextExample200TextResponse) VisitTextExampleResponse(ctx iris.Con
 	return err
 }
 
-type TextExample400Response = BadrequestResponse
+type TextExample400Response struct {
+}
 
 func (response TextExample400Response) VisitTextExampleResponse(ctx iris.Context) error {
 	ctx.StatusCode(400)
-	return nil
-}
-
-type TextExampledefaultResponse struct {
-	StatusCode int
-}
-
-func (response TextExampledefaultResponse) VisitTextExampleResponse(ctx iris.Context) error {
-	ctx.StatusCode(response.StatusCode)
 	return nil
 }
 
@@ -562,19 +516,11 @@ func (response UnknownExample200Videomp4Response) VisitUnknownExampleResponse(ct
 	return err
 }
 
-type UnknownExample400Response = BadrequestResponse
+type UnknownExample400Response struct {
+}
 
 func (response UnknownExample400Response) VisitUnknownExampleResponse(ctx iris.Context) error {
 	ctx.StatusCode(400)
-	return nil
-}
-
-type UnknownExampledefaultResponse struct {
-	StatusCode int
-}
-
-func (response UnknownExampledefaultResponse) VisitUnknownExampleResponse(ctx iris.Context) error {
-	ctx.StatusCode(response.StatusCode)
 	return nil
 }
 
@@ -607,7 +553,8 @@ func (response UnspecifiedContentType200VideoResponse) VisitUnspecifiedContentTy
 	return err
 }
 
-type UnspecifiedContentType400Response = BadrequestResponse
+type UnspecifiedContentType400Response struct {
+}
 
 func (response UnspecifiedContentType400Response) VisitUnspecifiedContentTypeResponse(ctx iris.Context) error {
 	ctx.StatusCode(400)
@@ -630,15 +577,6 @@ func (response UnspecifiedContentType403Response) VisitUnspecifiedContentTypeRes
 	return nil
 }
 
-type UnspecifiedContentTypedefaultResponse struct {
-	StatusCode int
-}
-
-func (response UnspecifiedContentTypedefaultResponse) VisitUnspecifiedContentTypeResponse(ctx iris.Context) error {
-	ctx.StatusCode(response.StatusCode)
-	return nil
-}
-
 type URLEncodedExampleRequestObject struct {
 	Body *URLEncodedExampleFormdataRequestBody
 }
@@ -647,7 +585,7 @@ type URLEncodedExampleResponseObject interface {
 	VisitURLEncodedExampleResponse(ctx iris.Context) error
 }
 
-type URLEncodedExample200FormdataResponse Example
+type URLEncodedExample200FormdataResponse = Example
 
 func (response URLEncodedExample200FormdataResponse) VisitURLEncodedExampleResponse(ctx iris.Context) error {
 	ctx.ResponseWriter().Header().Set("Content-Type", "application/x-www-form-urlencoded")
@@ -661,19 +599,11 @@ func (response URLEncodedExample200FormdataResponse) VisitURLEncodedExampleRespo
 	}
 }
 
-type URLEncodedExample400Response = BadrequestResponse
+type URLEncodedExample400Response struct {
+}
 
 func (response URLEncodedExample400Response) VisitURLEncodedExampleResponse(ctx iris.Context) error {
 	ctx.StatusCode(400)
-	return nil
-}
-
-type URLEncodedExampledefaultResponse struct {
-	StatusCode int
-}
-
-func (response URLEncodedExampledefaultResponse) VisitURLEncodedExampleResponse(ctx iris.Context) error {
-	ctx.StatusCode(response.StatusCode)
 	return nil
 }
 
@@ -705,19 +635,11 @@ func (response HeadersExample200JSONResponse) VisitHeadersExampleResponse(ctx ir
 	return ctx.JSON(&response.Body)
 }
 
-type HeadersExample400Response = BadrequestResponse
+type HeadersExample400Response struct {
+}
 
 func (response HeadersExample400Response) VisitHeadersExampleResponse(ctx iris.Context) error {
 	ctx.StatusCode(400)
-	return nil
-}
-
-type HeadersExampledefaultResponse struct {
-	StatusCode int
-}
-
-func (response HeadersExampledefaultResponse) VisitHeadersExampleResponse(ctx iris.Context) error {
-	ctx.StatusCode(response.StatusCode)
 	return nil
 }
 
@@ -764,19 +686,11 @@ func (response UnionExample200JSONResponse) VisitUnionExampleResponse(ctx iris.C
 	return ctx.JSON(&response.Body.union)
 }
 
-type UnionExample400Response = BadrequestResponse
+type UnionExample400Response struct {
+}
 
 func (response UnionExample400Response) VisitUnionExampleResponse(ctx iris.Context) error {
 	ctx.StatusCode(400)
-	return nil
-}
-
-type UnionExampledefaultResponse struct {
-	StatusCode int
-}
-
-func (response UnionExampledefaultResponse) VisitUnionExampleResponse(ctx iris.Context) error {
-	ctx.StatusCode(response.StatusCode)
 	return nil
 }
 
@@ -1275,24 +1189,24 @@ func (sh *strictHandler) UnionExample(ctx iris.Context) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xYS3PbNhD+Kxi0p5QUZccn3hpPJm3T1h3ZPnV8gIilhIQE0MVStEaj/94BQb0sWpUS",
-	"PTqZ3PhY7C6+b3ex2BnPTGmNBk2OpzOO4KzRDpqXoZAI/1TgyL9JcBkqS8ponvJ3Qg7af/OII1RODAtY",
-	"LPfymdEEulkqrC1UJvzS5JPz62fcZWMohX/6ESHnKf8hWbmShL8ugWdR2gL4fD6PXnhw95FHfAxCAjbe",
-	"hserTd00tcBT7giVHnGvJIhdd4opTTAC9Na8aOuEF1j4kc64RWMBSQWMJqKooNtS+8UMP0FGYQdK52Yb",
-	"y1ujSSjtmFR5DgiaWAse8zocc5W1BgkkG06Zt5ARc4ATQB5xUuQd4/fr31nrsOMRnwC6YOiq1+/1PV/G",
-	"ghZW8ZS/bT5F3AoaNxtaEmRNF++/3d/9yZRjoiJTClKZKIopKwW6sShAMqXJeBerjFyPN5awIf5X2a5+",
-	"30Lpo6YJoHdGTk8RME1croXzdb9/pricR/wmGOvSsXQqWUuwRk0uqqID80f9WZtaM0A02O4sKauClBVI",
-	"61xtov3HQmQfyJf6ktxgGUtB4kSoH8vSpYGPEQpBIPcgYBAkD+NhTf1JWfgaOxfloK3HnXXqfmxqx8am",
-	"ZmSYBFGwWtGYLRa+KLBKM8Gc0qMC2MKpqJPMAtpj72ctB+1eHryOk9ezaEPLc1zXddwkUIUF6MzIL6Mw",
-	"4qoUI0isHm0u97oF8ZQPp+RDdvuAO1IiR5zgmRJbCKV3n95nKunfkT5aYod0RWi6EhmPTPwZprVBGVuB",
-	"ogQCdMnMW597xSPoSOW/lpIsE5oNgWlRgmQiJ0D2wbBWpdtK2UFr94P5GERWqpqWZ/mS/j3jHpKmDeIR",
-	"9wZ4GlAJea3Qk05YQbQDtqf/jM+vImCBZmi24w1T3WVwUaKW0CHkzpfELuY68AuWBmsSl2nadkfc1vXj",
-	"HGeQZ/L1o/8Bnvdqu45Y+s6d24cCVoWPr2PWrtoHti+spHugOFESTFLamwM1XwxUZyFTuQIZt7uIg2+v",
-	"lYRbozME2myB/JVOG2JLZf6mSWNgAYGIOcNqYGXliFnhHFPUVJFChduqhK3i8bjy7DZYeliV012svjkR",
-	"p28uxehN/+rwJW9PHDcbrcwr+Tj4/X2QOfTOfrSe6cCO73h2L5TO/pISrw21ulP4lyCwOtMzUBPfEWnJ",
-	"EKhCDZJNlFgMYrZys1WworWrFwpurLqhxYDtkIYo2qnrmke7hnBP3/CI6JSjy3PFaaXVrlHho//N2h76",
-	"5dmgjP6fDgJFQYBakJrAT8e5QW5rMRru8ibTXrAc7Wnh6duLqnnEw+w6lKAKC18niGyaJGHm3XO1GI0A",
-	"e8okwiqPwr8BAAD//4h9qqfAGAAA",
+	"H4sIAAAAAAAC/+xYTXPbNhD9Kxi0p5QUZccn3hpPJm3T1h3ZPnV8WBFLCQkJoMBStEaj/94BQX1ZtCol",
+	"+uhkcpPIxdvle7uLBWY806XRChU5ns64RWe0ctj8GYKw+E+Fjvw/gS6z0pDUiqf8HYhB+24ecYuVg2GB",
+	"i+XePtOKUDVLwZhCZuCXJp+cXz/jLhtjCf7XjxZznvIfklUoSXjrEnyG0hTI5/N59CKCu4884mMEgbaJ",
+	"Nvy82sSmqUGeckdWqhH3IMHsutNMKsIRWu/Nm7ZBeINFHOmMG6sNWpKBowkUFXZ7ap/o4SfMKHyBVLne",
+	"5vJWKwKpHBMyz9GiItaSxzyGY64yRltCwYZT5j1kxBzaCVoecZLkA+P3689ZG7DjEZ+gdcHRVa/f63u9",
+	"tEEFRvKUv20eRdwAjZsPWgpkdJfuv93f/cmkY1CRLoFkBkUxZSVYN4YCBZOKtA+xysj1eOPJNsL/KtrV",
+	"71sqfdY0CfROi+kpEqbJy7V0vu73z5SX84jfBGddGMugkrUCa2ByqIoOzh/VZ6VrxdBabdsvS8qqIGnA",
+	"0rpWm2z/sTDZh/IlXpJrW8YCCE7E+rE8XZr42GIBhGIPAQbB8jAd1uBPqsLX+LmoBm0/7uxT92NdOzbW",
+	"NSPNBELBakljtlj4osFKxYA5qUYFskVQUaeYBbbb3s9KDNpvefAYJ+9n0QbKc1zXddwUUGULVJkWXyZh",
+	"xGUJI0yMGm0u99hAPOXDKfmU3d7gjlTIESd8psQUINXu3ftMLf0700cr7FCuFpupRMQjHX/Gaa2tiA1Y",
+	"KJHQumTmvc898Ag7SvmvpSXLQLEhMgUlCgY5oWUfNGsh3VbJDlq/H/THYLKCakae5Z/07xn3lDRjEI+4",
+	"d8DTwEqoa2m96GQrjHbQ9vSf+flVAizYDMN2vOGquw0uWtSSOou58y2xS7kO/oKnwZrFZYa23Rm3dfw4",
+	"xx7klXx963/A573GriO2vnPX9qGEVeHh65y1q/ah7Qs76R4sTqRAnZTm5kDki5HqDGYylyji9iviENtr",
+	"LeFWq8wibY5A/kinNLElmD9p0hhZYCBiTrMaWVk5YgacY5KaLlLIcFoVuNU8HleR3QZPD6t2ukvVNyfS",
+	"9M2lFL3pXx2+5O2J82ZjlHmlHge/vw82h57ZjzYzHTjxHc/vhcrZH1LitUut7hL+JRis9vQM5cRPREow",
+	"i1RZhYJNJCwuYrZqswVYydo1C4UwVtPQ4oLtkIEo2ol1vYGVQ+G6wFa3ck/f8J3RKe8yz5W4lZK77g4f",
+	"/WvWDtUvNwup1f/0ZhAKQquA5AR/Os6RchtFK7zLm9J7oXK0p4enby+r5hEPl9mhJ1W28I2DyKRJEi7B",
+	"e66G0QhtT+oEjPQs/BsAAP//cdIkn9EYAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
@@ -1340,27 +1254,20 @@ func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
 // The logic of resolving external references is tightly connected to "import-mapping" feature.
 // Externally referenced files must be embedded in the corresponding golang packages.
 // Urls can be supported but this task was out of the scope.
-func GetSwagger() (swagger *openapi3.T, err error) {
+func GetSwagger() (swagger *openapi.T, err error) {
 	resolvePath := PathToRawSpec("")
+	_ = resolvePath // TODO: Use resolvePath when ReadFromURIFunc is implemented
 
-	loader := openapi3.NewLoader()
+	loader := openapi.NewLoader()
 	loader.IsExternalRefsAllowed = true
-	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
-		pathToFile := url.String()
-		pathToFile = path.Clean(pathToFile)
-		getSpec, ok := resolvePath[pathToFile]
-		if !ok {
-			err1 := fmt.Errorf("path not found: %s", pathToFile)
-			return nil, err1
-		}
-		return getSpec()
-	}
+	// TODO: Add ReadFromURIFunc support to our abstraction layer
 	var specData []byte
 	specData, err = rawSpec()
 	if err != nil {
 		return
 	}
-	swagger, err = loader.LoadFromData(specData)
+	// Use LoadFromDataWithBasePath with current directory as base path
+	swagger, err = loader.LoadFromDataWithBasePath(specData, ".")
 	if err != nil {
 		return
 	}

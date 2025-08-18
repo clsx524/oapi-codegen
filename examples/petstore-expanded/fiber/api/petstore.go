@@ -93,11 +93,11 @@ func (p *PetStore) AddPet(c *fiber.Ctx) error {
 	var pet Pet
 	pet.Name = newPet.Name
 	pet.Tag = newPet.Tag
-	pet.Id = p.NextId
+	pet.ID = p.NextId
 	p.NextId++
 
 	// Insert into map
-	p.Pets[pet.Id] = pet
+	p.Pets[pet.ID] = pet
 
 	// Now, we have to return the NewPet
 	return c.Status(http.StatusCreated).JSON(pet)

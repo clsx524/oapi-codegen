@@ -26,7 +26,13 @@ type ClientWithExtension struct {
 
 // NestedType defines model for NestedType.
 type NestedType struct {
-	Client Client `json:"client,omitempty"`
+	Client struct {
+		// Id This field is optional, but the `prefer-skip-optional-pointer` Output Option ensures that this should not have an optional pointer.
+		Id float32 `json:"id,omitempty"`
+
+		// Name This field is required, so will never have an optional pointer.
+		Name string `json:"name"`
+	} `json:"client,omitempty"`
 }
 
 // ReferencedWithExtension defines model for ReferencedWithExtension.

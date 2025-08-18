@@ -9,6 +9,11 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// FilterColumnIncludes defines model for FilterColumnIncludes.
+type FilterColumnIncludes struct {
+	Includes *FilterPredicate `json:"$includes,omitempty"`
+}
+
 // FilterPredicate defines model for FilterPredicate.
 type FilterPredicate struct {
 	union json.RawMessage

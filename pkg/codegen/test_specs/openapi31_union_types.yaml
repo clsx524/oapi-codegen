@@ -1,0 +1,61 @@
+openapi: "3.1.0"
+info:
+  title: OpenAPI 3.1 Union Types Test
+  version: "1.0.0"
+  summary: Test specification for OpenAPI 3.1 union type features
+
+paths:
+  /users/{id}:
+    get:
+      operationId: getUserById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: ["string", "integer"]  # Union type
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: ["string", "integer"]  # Union type - replaces nullable
+        name:
+          type: string
+        email:
+          type: ["string", "null"]    # Nullable string in 3.1 style
+        age:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+        metadata:
+          # No type specified - can be anything
+          examples:
+            - {"key": "value"}
+            - [1, 2, 3]
+            - "string value"
+        status:
+          const: "active"  # Single value enum becomes const in 3.1
+        
+    # Example of const enum (3.1 feature)
+    UserRole:
+      const: "admin"
+      
+    # Example of multiple types with examples array
+    FlexibleValue:
+      type: ["string", "number", "boolean"]
+      examples:
+        - "text"
+        - 42
+        - true

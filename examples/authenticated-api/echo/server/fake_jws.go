@@ -4,10 +4,9 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 
-	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/lestrrat-go/jwx/jwk"
-	"github.com/lestrrat-go/jwx/jws"
-	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/lestrrat-go/jwx/v3/jwa"
+	"github.com/lestrrat-go/jwx/v3/jwk"
+	"github.com/lestrrat-go/jwx/v3/jwt"
 	"github.com/oapi-codegen/oapi-codegen/v2/pkg/ecdsafile"
 )
 
@@ -46,14 +45,12 @@ func NewFakeAuthenticator() (*FakeAuthenticator, error) {
 	}
 
 	set := jwk.NewSet()
-	pubKey := jwk.NewECDSAPublicKey()
-
-	err = pubKey.FromRaw(&privKey.PublicKey)
+	pubKey, err := jwk.Import(&privKey.PublicKey)
 	if err != nil {
 		return nil, fmt.Errorf("parsing jwk key: %w", err)
 	}
 
-	err = pubKey.Set(jwk.AlgorithmKey, jwa.ES256)
+	err = pubKey.Set(jwk.AlgorithmKey, jwa.ES256())
 	if err != nil {
 		return nil, fmt.Errorf("setting key algorithm: %w", err)
 	}
@@ -63,7 +60,10 @@ func NewFakeAuthenticator() (*FakeAuthenticator, error) {
 		return nil, fmt.Errorf("setting key ID: %w", err)
 	}
 
-	set.Add(pubKey)
+	err = set.AddKey(pubKey)
+	if err != nil {
+		return nil, fmt.Errorf("adding key to set: %w", err)
+	}
 
 	return &FakeAuthenticator{PrivateKey: privKey, KeySet: set}, nil
 }
@@ -77,17 +77,22 @@ func (f *FakeAuthenticator) ValidateJWS(jwsString string) (jwt.Token, error) {
 
 // SignToken takes a JWT and signs it with our private key, returning a JWS.
 func (f *FakeAuthenticator) SignToken(t jwt.Token) ([]byte, error) {
-	hdr := jws.NewHeaders()
-	if err := hdr.Set(jws.AlgorithmKey, jwa.ES256); err != nil {
-		return nil, fmt.Errorf("setting algorithm: %w", err)
+	// Create a JWK from the private key with the Key ID set
+	privJWK, err := jwk.Import(f.PrivateKey)
+	if err != nil {
+		return nil, fmt.Errorf("creating private JWK: %w", err)
 	}
-	if err := hdr.Set(jws.TypeKey, "JWT"); err != nil {
-		return nil, fmt.Errorf("setting type: %w", err)
+	
+	err = privJWK.Set(jwk.KeyIDKey, KeyID)
+	if err != nil {
+		return nil, fmt.Errorf("setting key ID on private key: %w", err)
 	}
-	if err := hdr.Set(jws.KeyIDKey, KeyID); err != nil {
-		return nil, fmt.Errorf("setting Key ID: %w", err)
+
+	signed, err := jwt.Sign(t, jwt.WithKey(jwa.ES256(), privJWK))
+	if err != nil {
+		return nil, fmt.Errorf("signing token: %w", err)
 	}
-	return jwt.Sign(t, jwa.ES256, f.PrivateKey, jwt.WithHeaders(hdr))
+	return signed, nil
 }
 
 // CreateJWSWithClaims is a helper function to create JWT's with the specified
