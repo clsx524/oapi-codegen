@@ -1,6 +1,6 @@
 module github.com/oapi-codegen/oapi-codegen/v2/internal/test
 
-go 1.24
+go 1.24.0
 
 toolchain go1.24.5
 
@@ -18,7 +18,7 @@ require (
 	github.com/oapi-codegen/oapi-codegen/v2 v2.0.0-00010101000000-000000000000
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/oapi-codegen/testutil v1.0.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -74,7 +74,7 @@ require (
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/oasdiff/yaml v0.0.0-20250309154309-f31be36b4037 // indirect
 	github.com/oasdiff/yaml3 v0.0.0-20250309153720-d2182401db90 // indirect
-	github.com/pb33f/libopenapi v0.23.0 // indirect
+	github.com/pb33f/libopenapi v0.25.8 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.9 // indirect
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

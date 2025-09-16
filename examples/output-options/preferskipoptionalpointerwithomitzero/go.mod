@@ -1,12 +1,12 @@
 module github.com/oapi-codegen/oapi-codegen/v2/examples/output-options/preferskipoptionalpointerwithomitzero
 
-go 1.24
+go 1.24.0
 
 replace github.com/oapi-codegen/oapi-codegen/v2 => ../../../
 
 require (
 	github.com/oapi-codegen/oapi-codegen/v2 v2.0.0-00010101000000-000000000000
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 )
 
 require (
@@ -15,7 +15,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dprotaso/go-yit v0.0.0-20240618133044-5a0af90af097 // indirect
 	github.com/mailru/easyjson v0.9.0 // indirect
-	github.com/pb33f/libopenapi v0.23.0 // indirect
+	github.com/pb33f/libopenapi v0.25.8 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/speakeasy-api/jsonpath v0.6.2 // indirect

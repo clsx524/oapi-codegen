@@ -1,6 +1,6 @@
 module github.com/oapi-codegen/oapi-codegen/v2/examples/petstore-expanded/stdhttp
 
-go 1.24
+go 1.24.0
 
 toolchain go1.24.5
 
@@ -11,7 +11,7 @@ require (
 	github.com/oapi-codegen/oapi-codegen/v2 v2.0.0-00010101000000-000000000000
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/oapi-codegen/testutil v1.0.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 )
 
 require (
@@ -29,7 +29,7 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.9.0 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
-	github.com/pb33f/libopenapi v0.23.0 // indirect
+	github.com/pb33f/libopenapi v0.25.8 // indirect
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/speakeasy-api/jsonpath v0.6.2 // indirect

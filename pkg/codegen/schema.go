@@ -1102,14 +1102,14 @@ func generateParameterOneOfStruct(arraySchema, singleSchema *openapi.SchemaRef, 
 		{
 			JsonFieldName: "single",
 			Schema: Schema{
-				GoType: "*" + elementType,
+				GoType: elementType,
 			},
 			Description: "Single value variant",
 		},
 		{
 			JsonFieldName: "array", 
 			Schema: Schema{
-				GoType: "*[]" + elementType,
+				GoType: "[]" + elementType,
 			},
 			Description: "Array value variant",
 		},
