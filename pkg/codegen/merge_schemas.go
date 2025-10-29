@@ -18,15 +18,13 @@ func MergeSchemas(allOf []*openapi.SchemaRef, path []string) (Schema, error) {
 	return mergeSchemas(allOf, path)
 }
 
-
 func mergeSchemas(allOf []*openapi.SchemaRef, path []string) (Schema, error) {
 	n := len(allOf)
 
 	if n == 0 {
 		return Schema{}, fmt.Errorf("no schemas to merge in allOf")
 	}
-	
-	
+
 	if n == 1 {
 		return GenerateGoSchema(allOf[0], path)
 	}
@@ -42,17 +40,16 @@ func mergeSchemas(allOf []*openapi.SchemaRef, path []string) (Schema, error) {
 		if err != nil {
 			return Schema{}, err
 		}
-		
+
 		mergedSchema, err := mergeOpenapiSchemas(*schema, *oneOfSchema, true)
 		if err != nil {
 			return Schema{}, fmt.Errorf("error merging schemas for AllOf: %w", err)
 		}
-		
+
 		schema = &mergedSchema
 	}
 	return GenerateGoSchema(openapi.NewSchemaRef("", schema), path)
 }
-
 
 // valueWithPropagatedRef returns a copy of ref schema with its Properties refs
 // updated if ref itself is external. Otherwise, return ref.Value as-is.
@@ -96,10 +93,7 @@ func mergeAllOf(allOf []*openapi.SchemaRef) (*openapi.Schema, error) {
 func mergeOpenapiSchemas(s1, s2 openapi.Schema, allOf bool) (openapi.Schema, error) {
 	// For now, provide a basic implementation that handles the core schema merging
 	// This is a simplified version that focuses on the essential properties
-	var result openapi.Schema
-
-	// Copy base schema from s1
-	result = s1
+	var result openapi.Schema = s1
 
 	// Merge type information - for OpenAPI 3.1 we handle union types
 	if len(s1.TypeSlice()) > 0 && len(s2.TypeSlice()) > 0 {
@@ -111,7 +105,7 @@ func mergeOpenapiSchemas(s1, s2 openapi.Schema, allOf bool) (openapi.Schema, err
 		for _, t := range s2.TypeSlice() {
 			typeMap[t] = true
 		}
-		
+
 		var combinedTypes []string
 		for t := range typeMap {
 			combinedTypes = append(combinedTypes, t)
@@ -123,7 +117,7 @@ func mergeOpenapiSchemas(s1, s2 openapi.Schema, allOf bool) (openapi.Schema, err
 	// For properties, we need to merge them
 	s1Props := s1.PropertiesToMap()
 	s2Props := s2.PropertiesToMap()
-	
+
 	if s1Props != nil || s2Props != nil {
 		// Merge properties from both schemas
 		if s2Props != nil {
@@ -132,8 +126,8 @@ func mergeOpenapiSchemas(s1, s2 openapi.Schema, allOf bool) (openapi.Schema, err
 				result.Properties = s2.Properties
 			} else {
 				// Merge properties: create a new orderedmap with all properties
-				result.Properties = result.Properties // Keep existing properties from s1
-				
+				// Keep existing properties from s1
+
 				// Add properties from s2 that don't exist in s1
 				if result.Properties != nil && s2.Properties != nil {
 					for pair := s2.Properties.First(); pair != nil; pair = pair.Next() {
@@ -155,28 +149,28 @@ func mergeOpenapiSchemas(s1, s2 openapi.Schema, allOf bool) (openapi.Schema, err
 									if pair.Value() != nil && pair.Value().Schema() != nil {
 										newEnumCount = len(pair.Value().Schema().Enum)
 									}
-									
+
 									// Prefer enum over plain string: replace if new has enum and existing doesn't
 									if newEnumCount > 0 && existingEnumCount == 0 {
 										shouldReplaceExisting = true
 									}
-									
+
 									// Prefer specific array type over generic object type
 									if existingPair.Value() != nil && pair.Value() != nil {
 										// Check if existing is generic object and new is specific array
 										existingVal := existingPair.Value()
 										newVal := pair.Value()
-										
+
 										// Check type information directly from the SchemaRef
 										if existingVal.Schema() != nil && newVal.Schema() != nil {
 											existingSchema := existingVal.Schema()
 											newSchema := newVal.Schema()
-											
+
 											// Check if existing is generic object type
 											existingIsObject := existingSchema.Type != nil && len(existingSchema.Type) > 0 && existingSchema.Type[0] == "object"
 											// Check if new is array type with items
 											newIsArray := newSchema.Type != nil && len(newSchema.Type) > 0 && newSchema.Type[0] == "array" && newSchema.Items != nil
-											
+
 											if existingIsObject && newIsArray {
 												shouldReplaceExisting = true
 											}
@@ -209,7 +203,7 @@ func mergeOpenapiSchemas(s1, s2 openapi.Schema, allOf bool) (openapi.Schema, err
 		for _, req := range s2.Required {
 			requiredMap[req] = true
 		}
-		
+
 		var combinedRequired []string
 		for req := range requiredMap {
 			combinedRequired = append(combinedRequired, req)
@@ -234,4 +228,3 @@ func equalTypes(t1, t2 []string) bool {
 
 	return true
 }
-

@@ -989,7 +989,7 @@ func (l *Loader) wrapComponents(components *v3.Components) *Components {
 	if components.Schemas != nil {
 		wrapped.Schemas = make(map[string]*SchemaRef)
 		visited := make(map[*base.Schema]bool)
-		
+
 		// First pass: collect all component schemas for reference matching
 		componentSchemas := make(map[string]*base.Schema)
 		componentSchemaNames := make(map[*base.Schema]string) // Map schema pointer to component name
@@ -1002,11 +1002,11 @@ func (l *Loader) wrapComponents(components *v3.Components) *Components {
 				componentSchemaNames[schema] = schemaName
 			}
 		}
-		
+
 		// Store component schemas globally for reference restoration
 		globalComponentSchemas = componentSchemas
 		globalComponentSchemaNames = componentSchemaNames
-		
+
 		for pair := components.Schemas.First(); pair != nil; pair = pair.Next() {
 			schemaName := pair.Key()
 			schemaProxy := pair.Value()
@@ -1085,7 +1085,7 @@ func (t *T) MarshalJSON() ([]byte, error) {
 	}
 
 	// Use libopenapi's Render method which returns YAML and then convert to JSON
-	yamlBytes, err := t.Document.Render()
+	yamlBytes, err := t.Render()
 	if err != nil {
 		return nil, err
 	}
@@ -1300,7 +1300,7 @@ func (s *Schema) TypeIs(typeStr string) bool {
 	if s.Schema == nil {
 		return false
 	}
-	for _, t := range s.Schema.Type {
+	for _, t := range s.Type {
 		if t == typeStr {
 			return true
 		}
@@ -1313,7 +1313,7 @@ func (s *Schema) TypeSlice() []string {
 	if s.Schema == nil {
 		return nil
 	}
-	return s.Schema.Type
+	return s.Type
 }
 
 // PropertiesToMap converts libopenapi Properties to a map for easier iteration
@@ -1323,12 +1323,12 @@ func (s *Schema) PropertiesToMap() map[string]*SchemaRef {
 
 // PropertiesToMapWithVisited converts libopenapi Properties to a map for easier iteration with external visited tracking
 func (s *Schema) PropertiesToMapWithVisited(visited map[*base.Schema]bool) map[string]*SchemaRef {
-	if s.Schema == nil || s.Schema.Properties == nil {
+	if s.Schema == nil || s.Properties == nil {
 		return nil
 	}
 
 	result := make(map[string]*SchemaRef)
-	for pair := s.Schema.Properties.First(); pair != nil; pair = pair.Next() {
+	for pair := s.Properties.First(); pair != nil; pair = pair.Next() {
 		propertyName := pair.Key()
 		schemaProxy := pair.Value()
 
@@ -1393,7 +1393,7 @@ func findMatchingComponentSchema(schema *base.Schema) string {
 				matches = append(matches, componentName)
 			}
 		}
-		
+
 		// If multiple matches found, this could be the source of inconsistency
 		if len(matches) > 1 {
 			// First priority: Look for exact semantic matches for common simple types
@@ -1403,20 +1403,20 @@ func findMatchingComponentSchema(schema *base.Schema) string {
 					// Check if this is a simple schema with one property that matches the component name
 					for pair := schema.Properties.First(); pair != nil; pair = pair.Next() {
 						propName := pair.Key()
-						if strings.ToLower(propName) == strings.ToLower(match) {
+						if strings.EqualFold(propName, match) {
 							return match
 						}
 						// Handle snake_case to camelCase conversion
-						if strings.ToLower(strings.ReplaceAll(propName, "_", "")) == strings.ToLower(match) {
+						if strings.EqualFold(strings.ReplaceAll(propName, "_", ""), match) {
 							return match
 						}
 					}
 				}
 			}
-			
+
 			// Second priority: Apply property-based disambiguation for complex schemas
 			hasSpecificProperties := hasJobAssignmentProperties(schema) || hasEarningRateProperties(schema)
-			
+
 			if hasSpecificProperties {
 				// Try to find the most specific match by preferring schemas that contain
 				// information about the structure (e.g., JobAssignments vs WithEarningRates)
@@ -1427,7 +1427,7 @@ func findMatchingComponentSchema(schema *base.Schema) string {
 							return match
 						}
 					}
-					// If we have earning rate properties, prefer EarningRates schema  
+					// If we have earning rate properties, prefer EarningRates schema
 					if hasEarningRateProperties(schema) {
 						if strings.Contains(match, "EarningRates") || strings.Contains(match, "WithEarningRates") {
 							return match
@@ -1435,7 +1435,7 @@ func findMatchingComponentSchema(schema *base.Schema) string {
 					}
 				}
 			}
-			
+
 			// Third priority: For remaining cases, prefer the shortest/simplest component name (likely the base type)
 			shortestMatch := matches[0]
 			for _, match := range matches[1:] {
@@ -1578,7 +1578,6 @@ func stringSlicesEqual(a, b []string) bool {
 	}
 	return true
 }
-
 
 // SchemaProxyToRef converts a libopenapi SchemaProxy to our SchemaRef
 func SchemaProxyToRef(proxy *base.SchemaProxy) *SchemaRef {

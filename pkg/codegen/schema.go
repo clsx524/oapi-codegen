@@ -260,7 +260,6 @@ func GenerateGoSchema(sref *openapi.SchemaRef, path []string) (Schema, error) {
 	}
 
 	schema := sref.Value
-	
 
 	// Handle case where schema couldn't be resolved (e.g., failed external reference)
 	if schema == nil {
@@ -312,7 +311,7 @@ func GenerateGoSchema(sref *openapi.SchemaRef, path []string) (Schema, error) {
 		// For component schema references, we should generally use aliases unless
 		// this is the schema definition itself (which would create recursive definitions)
 		isComponentRef := strings.Contains(sref.Ref, "#/components/schemas/")
-		
+
 		// Check if this is a schema being defined for a component (to prevent recursive definitions)
 		// This happens when we're generating the actual component schema type itself
 		isDefiningComponentSchema := false
@@ -324,17 +323,16 @@ func GenerateGoSchema(sref *openapi.SchemaRef, path []string) (Schema, error) {
 				isDefiningComponentSchema = true
 			}
 		}
-		
+
 		return Schema{
 			GoType:              refType,
 			RefType:             refType,
 			Description:         schema.Description,
-			DefineViaAlias:      !isDefiningComponentSchema,  // Only prevent aliases when defining the schema itself
+			DefineViaAlias:      !isDefiningComponentSchema, // Only prevent aliases when defining the schema itself
 			OAPISchema:          schema,
 			SkipOptionalPointer: skipOptionalPointer,
 		}, nil
 	}
-
 
 	outSchema := Schema{
 		Description:         schema.Description,
@@ -351,7 +349,7 @@ func GenerateGoSchema(sref *openapi.SchemaRef, path []string) (Schema, error) {
 	// For complex cases, fall back to the original merging logic.
 	if schema.AllOf != nil {
 		allOfRefs := openapi.SchemaProxiesToRefs(schema.AllOf)
-		
+
 		// Check if this is a simple case that can use embedded structs
 		hasOnlyRefsAndSimpleInline := true
 		refCount := 0
@@ -360,14 +358,14 @@ func GenerateGoSchema(sref *openapi.SchemaRef, path []string) (Schema, error) {
 				refCount++
 			} else {
 				// Check if the inline schema is simple (only properties, no complex structures)
-				if schemaRef.Value != nil && 
-				   (len(schemaRef.Value.AllOf) > 0 || len(schemaRef.Value.OneOf) > 0 || len(schemaRef.Value.AnyOf) > 0) {
+				if schemaRef.Value != nil &&
+					(len(schemaRef.Value.AllOf) > 0 || len(schemaRef.Value.OneOf) > 0 || len(schemaRef.Value.AnyOf) > 0) {
 					hasOnlyRefsAndSimpleInline = false
 					break
 				}
 			}
 		}
-		
+
 		// Use embedded struct approach for simple cases with at least one reference
 		// Only apply to top-level schemas, not nested properties
 		isTopLevelSchema := len(path) <= 1
@@ -377,7 +375,7 @@ func GenerateGoSchema(sref *openapi.SchemaRef, path []string) (Schema, error) {
 				Description: schema.Description,
 				OAPISchema:  schema,
 			}
-			
+
 			// Process each schema in the allOf
 			for _, schemaRef := range allOfRefs {
 				if schemaRef.Ref != "" {
@@ -387,7 +385,7 @@ func GenerateGoSchema(sref *openapi.SchemaRef, path []string) (Schema, error) {
 						return Schema{}, fmt.Errorf("error converting ref path to go type: %w", err)
 					}
 					resultSchema.EmbeddedTypes = append(resultSchema.EmbeddedTypes, refTypeName)
-					
+
 					// Still need to process the referenced schema to generate its types
 					referencedSchema, err := GenerateGoSchema(schemaRef, path)
 					if err != nil {
@@ -407,12 +405,12 @@ func GenerateGoSchema(sref *openapi.SchemaRef, path []string) (Schema, error) {
 					resultSchema.AdditionalTypes = append(resultSchema.AdditionalTypes, inlineSchema.AdditionalTypes...)
 				}
 			}
-			
+
 			// Generate struct type
 			if len(resultSchema.EmbeddedTypes) > 0 || len(resultSchema.Properties) > 0 {
 				resultSchema.GoType = GenStructFromSchema(resultSchema)
 			}
-			
+
 			return resultSchema, nil
 		} else {
 			// Fall back to original merging logic for complex cases
@@ -522,8 +520,7 @@ func GenerateGoSchema(sref *openapi.SchemaRef, path []string) (Schema, error) {
 			for _, pName := range SortedSchemaKeys(schema.PropertiesToMap()) {
 				p := schema.PropertiesToMap()[pName]
 				propertyPath := append(path, pName)
-				
-				
+
 				pSchema, err := GenerateGoSchema(p, propertyPath)
 				if err != nil {
 					return Schema{}, fmt.Errorf("error generating Go schema for property '%s': %w", pName, err)
@@ -720,9 +717,10 @@ func oapiSchemaToGoType(schema *openapi.Schema, path []string, outSchema *Schema
 				hasString := false
 				hasNumber := false
 				for _, t := range nonNullTypes {
-					if t == "string" {
+					switch t {
+					case "string":
 						hasString = true
-					} else if t == "number" || t == "integer" {
+					case "number", "integer":
 						hasNumber = true
 					}
 				}
@@ -745,7 +743,7 @@ func oapiSchemaToGoType(schema *openapi.Schema, path []string, outSchema *Schema
 	if schema.TypeIs("array") {
 		// For arrays, we'll get the type of the Items and throw a
 		// [] in front of it.
-		arrayType, err := GenerateGoSchema(schema.Items, path)
+		arrayType, err := GenerateGoSchema(schema.Items, append(path, "Item"))
 		if err != nil {
 			return fmt.Errorf("error generating type for array: %w", err)
 		}
@@ -987,12 +985,12 @@ func additionalPropertiesType(schema Schema) string {
 func GenStructFromSchema(schema Schema) string {
 	// Start out with struct {
 	objectParts := []string{"struct {"}
-	
+
 	// Add embedded types first (for allOf)
 	for _, embeddedType := range schema.EmbeddedTypes {
 		objectParts = append(objectParts, fmt.Sprintf("    %s", embeddedType))
 	}
-	
+
 	// Append all the field definitions
 	objectParts = append(objectParts, GenFieldsFromProperties(schema.Properties)...)
 	// Close the struct
@@ -1052,11 +1050,11 @@ func paramToGoType(param *openapi.Parameter, path []string) (Schema, error) {
 // This is a OpenAPI 3.1 feature where parameters can have oneOf with array/single variants
 func handleParameterOneOf(param *openapi.Parameter, path []string) (Schema, error) {
 	oneOfElements := param.Schema.Value.OneOf
-	
+
 	// Look for the common pattern: array of T vs single T
 	var arraySchema *openapi.SchemaRef
 	var singleSchema *openapi.SchemaRef
-	
+
 	for _, element := range oneOfElements {
 		if element.Value != nil {
 			if element.Value.Type != nil && len(element.Value.Type) > 0 && element.Value.Type[0] == "array" {
@@ -1066,12 +1064,12 @@ func handleParameterOneOf(param *openapi.Parameter, path []string) (Schema, erro
 			}
 		}
 	}
-	
+
 	// If we found both array and single variants, generate a union struct
 	if arraySchema != nil && singleSchema != nil {
 		return generateParameterOneOfStruct(arraySchema, singleSchema, path)
 	}
-	
+
 	// If not the array/single pattern, fall back to normal oneOf handling
 	return GenerateGoSchema(param.Schema, path)
 }
@@ -1083,20 +1081,20 @@ func generateParameterOneOfStruct(arraySchema, singleSchema *openapi.SchemaRef, 
 	if err != nil {
 		return Schema{}, fmt.Errorf("error generating array schema: %w", err)
 	}
-	
-	// Generate the single value type  
+
+	// Generate the single value type
 	singleGoSchema, err := GenerateGoSchema(singleSchema, path)
 	if err != nil {
 		return Schema{}, fmt.Errorf("error generating single schema: %w", err)
 	}
-	
+
 	// Extract the element type from array (e.g., []string -> string)
 	// Use single schema type as fallback
 	elementType := singleGoSchema.GoType
 	if arrayGoSchema.ArrayType != nil {
 		elementType = arrayGoSchema.ArrayType.GoType
 	}
-	
+
 	// Create properties for the union struct
 	properties := []Property{
 		{
@@ -1107,25 +1105,25 @@ func generateParameterOneOfStruct(arraySchema, singleSchema *openapi.SchemaRef, 
 			Description: "Single value variant",
 		},
 		{
-			JsonFieldName: "array", 
+			JsonFieldName: "array",
 			Schema: Schema{
 				GoType: "[]" + elementType,
 			},
 			Description: "Array value variant",
 		},
 	}
-	
+
 	// Create the struct schema
 	structFields := []string{"struct {"}
 	structFields = append(structFields, GenFieldsFromProperties(properties)...)
 	structFields = append(structFields, "}")
-	
+
 	outSchema := Schema{
-		GoType: strings.Join(structFields, "\n"),
-		Properties: properties,
+		GoType:      strings.Join(structFields, "\n"),
+		Properties:  properties,
 		Description: "Union type for parameter that accepts either single value or array",
 	}
-	
+
 	return outSchema, nil
 }
 
@@ -1148,7 +1146,7 @@ func generateUnion(outSchema *Schema, elements []*openapi.SchemaRef, discriminat
 
 		if element.Ref == "" {
 			elementName := SchemaNameToTypeName(PathToTypeName(elementPath))
-			
+
 			// Check for collision and add descriptive suffix if needed
 			if usedTypeNames[elementName] {
 				// Add suffix based on schema type to distinguish variants
@@ -1169,7 +1167,8 @@ func generateUnion(outSchema *Schema, elements []*openapi.SchemaRef, discriminat
 				elementName = elementName + suffix
 			}
 			usedTypeNames[elementName] = true
-			
+
+			// For all inline schemas in unions, create type definitions
 			if elementSchema.TypeDecl() == elementName {
 				elementSchema.GoType = elementName
 			} else {
@@ -1177,6 +1176,10 @@ func generateUnion(outSchema *Schema, elements []*openapi.SchemaRef, discriminat
 				outSchema.AdditionalTypes = append(outSchema.AdditionalTypes, td)
 				elementSchema.GoType = td.TypeName
 			}
+
+			// Add any additional types from the element schema
+			// For arrays, this includes the item type definition if it was created
+			// For other types, this includes nested type definitions
 			outSchema.AdditionalTypes = append(outSchema.AdditionalTypes, elementSchema.AdditionalTypes...)
 		} else {
 			refToGoTypeMap[element.Ref] = elementSchema.GoType
