@@ -347,6 +347,31 @@ func (o *OperationDefinition) GetResponseTypeDefinitions() ([]ResponseTypeDefini
 						continue
 					}
 
+					// If the response schema has union elements (oneOf/anyOf) and is not a reference,
+					// create a named type for it so that union helper methods can be generated.
+					if len(responseSchema.UnionElements) != 0 && responseSchema.RefType == "" {
+						unionTypeName := SchemaNameToTypeName(o.OperationId) + "_" + typeName
+						unionTypeDef := TypeDefinition{
+							TypeName: unionTypeName,
+							Schema:   responseSchema,
+						}
+						// Add the union type to AdditionalTypes so helper methods are generated
+						// Check if already added to avoid duplicates when called multiple times
+						alreadyAdded := false
+						for _, at := range responseSchema.AdditionalTypes {
+							if at.TypeName == unionTypeName {
+								alreadyAdded = true
+								break
+							}
+						}
+						if !alreadyAdded {
+							responseSchema.AdditionalTypes = append(responseSchema.AdditionalTypes, unionTypeDef)
+						}
+						// Update the schema to reference the named type
+						responseSchema.RefType = unionTypeName
+						responseSchema.GoType = unionTypeName
+					}
+
 					td := ResponseTypeDefinition{
 						TypeDefinition: TypeDefinition{
 							TypeName: typeName,
@@ -990,6 +1015,22 @@ func GenerateTypesForOperations(t *template.Template, ops []OperationDefinition)
 		td = append(td, op.TypeDefinitions...)
 	}
 
+	// Collect union types from response definitions for union boilerplate generation
+	// These are separate from op.TypeDefinitions to avoid affecting other boilerplate generation
+	var unionTd []TypeDefinition
+	for _, op := range ops {
+		responseTypeDefs, err := op.GetResponseTypeDefinitions()
+		if err == nil {
+			for _, rtd := range responseTypeDefs {
+				for _, addType := range rtd.AdditionalTypeDefinitions {
+					if len(addType.Schema.UnionElements) != 0 {
+						unionTd = append(unionTd, addType)
+					}
+				}
+			}
+		}
+	}
+
 	addProps, err := GenerateAdditionalPropertyBoilerplate(t, td)
 	if err != nil {
 		return "", fmt.Errorf("error generating additional properties boilerplate for operations: %w", err)
@@ -1001,6 +1042,20 @@ func GenerateTypesForOperations(t *template.Template, ops []OperationDefinition)
 
 	if _, err := w.WriteString(addProps); err != nil {
 		return "", fmt.Errorf("error generating additional properties boilerplate for operations: %w", err)
+	}
+
+	// Generate union boilerplate for operation types (e.g., response oneOf unions)
+	unionBoilerplate, err := GenerateUnionBoilerplate(t, unionTd)
+	if err != nil {
+		return "", fmt.Errorf("error generating union boilerplate for operations: %w", err)
+	}
+
+	if _, err := w.WriteString("\n"); err != nil {
+		return "", fmt.Errorf("error writing union boilerplate to buffer: %w", err)
+	}
+
+	if _, err := w.WriteString(unionBoilerplate); err != nil {
+		return "", fmt.Errorf("error writing union boilerplate to buffer: %w", err)
 	}
 
 	if err = w.Flush(); err != nil {

@@ -979,9 +979,14 @@ func GenerateAdditionalPropertyBoilerplate(t *template.Template, typeDefs []Type
 
 func GenerateUnionBoilerplate(t *template.Template, typeDefs []TypeDefinition) (string, error) {
 	var filteredTypes []TypeDefinition
-	for _, t := range typeDefs {
-		if len(t.Schema.UnionElements) != 0 {
-			filteredTypes = append(filteredTypes, t)
+	seen := make(map[string]bool)
+	for _, td := range typeDefs {
+		if len(td.Schema.UnionElements) != 0 {
+			// Deduplicate by type name to prevent duplicate method declarations
+			if !seen[td.TypeName] {
+				seen[td.TypeName] = true
+				filteredTypes = append(filteredTypes, td)
+			}
 		}
 	}
 

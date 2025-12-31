@@ -1204,7 +1204,18 @@ func generateUnion(outSchema *Schema, elements []*openapi.SchemaRef, discriminat
 				outSchema.Discriminator.Mapping[RefPathToObjName(element.Ref)] = elementSchema.GoType
 			}
 		}
-		outSchema.UnionElements = append(outSchema.UnionElements, UnionElement(elementSchema.GoType))
+		// Deduplicate union elements to avoid generating duplicate methods
+		elementType := UnionElement(elementSchema.GoType)
+		isDuplicate := false
+		for _, existing := range outSchema.UnionElements {
+			if existing == elementType {
+				isDuplicate = true
+				break
+			}
+		}
+		if !isDuplicate {
+			outSchema.UnionElements = append(outSchema.UnionElements, elementType)
+		}
 	}
 
 	if (outSchema.Discriminator != nil) && len(outSchema.Discriminator.Mapping) != len(elements) {
